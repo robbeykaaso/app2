@@ -91,6 +91,7 @@ ApplicationWindow {
                     font.pixelSize: 12
                     width: 40
                     height: 30
+                    onClicked: front.show()
                 }
             }
 
@@ -99,7 +100,7 @@ ApplicationWindow {
                 height: parent.height
                 QSGBoard{
                     name: "background"
-                    plugins: [{type: "transform"}]
+                    plugins: [{type: "select"}]
                     anchors.fill: parent
                     Component.onDestruction: {
                         beforeDestroy()
@@ -163,7 +164,7 @@ ApplicationWindow {
                             height: parent.height - 30
                             QSGBoard{
                                 name: "frontend"
-                                plugins: [{type: "transform"}]
+                                plugins: [{type: "select"}]
                                 anchors.fill: parent
                                 Component.onDestruction: {
                                     beforeDestroy()
@@ -207,7 +208,7 @@ ApplicationWindow {
                             height: parent.height - 30
                             QSGBoard{
                                 name: "backend"
-                                plugins: [{type: "transform"}]
+                                plugins: [{type: "select"}]
                                 anchors.fill: parent
                                 Component.onDestruction: {
                                     beforeDestroy()
@@ -242,9 +243,16 @@ ApplicationWindow {
                     font.pixelSize: 12
                     width: 40
                     height: 30
+                    onClicked: back.show()
                 }
             }
         }
 
+    }
+    FrontPanel{
+        id: front
+    }
+    BackPanel{
+        id: back
     }
 }
