@@ -1,0 +1,7 @@
+{ 
+    "source": "..",
+    "app": "D:/mywork/product/NWLan/qtinstall/mypackages/content/data/NWLan.exe",
+    "depends": "depends.exe",
+    "filter": ["windows"],
+    "addition": ["D:/mywork/product/NWLan/qtinstall/mypackages/content/data/plugin"]
+}

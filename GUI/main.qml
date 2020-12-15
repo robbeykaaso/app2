@@ -1,6 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.5
 import "../gui/Basic"
+import "../gui/TreeNodeView"
 import QSGBoard 1.0
 
 ApplicationWindow {
@@ -126,7 +127,12 @@ ApplicationWindow {
                             property int del_size: 0
                             width: parent.width
                             height: parent.height * 0.5 + del_size
+                            color: "azure"
                             border.color: "black"
+                            TreeNodeView {
+                                root: "com"
+                                anchors.fill: parent
+                            }
                         }
                     }
                     Sizable{
@@ -186,7 +192,7 @@ ApplicationWindow {
                             Combo{
                                 width: parent.width - 120
                                 height: parent.height
-                                caption.text: qsTr("前端事件") + ":"
+                                caption.text: qsTr("云服务器事件") + ":"
                                 combo.model: [qsTr("登录事件"), qsTr("xx事件"), qsTr("yy事件")]
                                 ratio: 0.2
                             }
