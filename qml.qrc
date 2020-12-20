@@ -3,5 +3,8 @@
         <file>GUI/main.qml</file>
         <file>GUI/BackPanel.qml</file>
         <file>GUI/FrontPanel.qml</file>
+        <file>GUI/ElementPanel.qml</file>
+        <file>GUI/TreeView0.qml</file>
+        <file>GUI/PageWindow.qml</file>
     </qresource>
 </RCC>

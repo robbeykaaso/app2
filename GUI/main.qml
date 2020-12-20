@@ -78,6 +78,7 @@ ApplicationWindow {
                     font.pixelSize: 12
                     width: 40
                     height: 80
+                    onClicked: pg.show()
                 }
                 Button{
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -85,6 +86,7 @@ ApplicationWindow {
                     font.pixelSize: 12
                     width: 40
                     height: 80
+                    onClicked: ele.show()
                 }
                 Button{
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -117,7 +119,15 @@ ApplicationWindow {
                             property int del_size: 0
                             width: parent.width
                             height: parent.height * 0.5 + del_size
-                            color: "gray"
+                            QSGBoard{
+                                name: "elementend"
+                                plugins: [{type: "select"}]
+                                anchors.fill: parent
+                                Component.onDestruction: {
+                                    beforeDestroy()
+                                }
+                            }
+                            border.color: "black"
                         }
                         Sizable{
                             width: parent.width
@@ -255,10 +265,16 @@ ApplicationWindow {
         }
 
     }
+    ElementPanel{
+        id: ele
+    }
     FrontPanel{
         id: front
     }
     BackPanel{
         id: back
+    }
+    PageWindow{
+        id: pg
     }
 }

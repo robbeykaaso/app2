@@ -1,0 +1,24 @@
+[
+    {
+        "type": "page",
+        "children": [
+            {
+                "id": "id0",
+                "type": "image",
+                "range": [0, 0, 100, 100],
+                "path": ""
+            },
+            {
+                "id": "id1",
+                "type": "text",
+                "range": [0, 0, 50, 50],
+                "content": ""
+            },
+            {
+                "id": "id2",
+                "type": "rect",
+                "points": [0, 0, 200, 0, 200, 200, 0, 200, 0, 0]
+            }
+        ]
+    }
+]

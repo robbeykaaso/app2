@@ -16,7 +16,7 @@ private:
 
 class document{
 public:
-    document(){
+    document(){        
         const auto param = rea::Json("com1", rea::Json("param1_1", 1,
                                                        "param1_2", true),
                                      "com2", rea::Json("param2_1", "param",
@@ -24,16 +24,62 @@ public:
                                      "com3", rea::Json("param3_1", false),
                                      "com4", rea::Json("param4_1", "value4_1",
                                                        "param4_2", 34,
-                                                       "param4_3", false));
+                                                       "param4_3", false),
+                                     "image", rea::Json("name", "image0",
+                                                        "position", QJsonArray(),
+                                                        "comment", "",
+                                                        "relative_position", QJsonArray(),
+                                                        "source", ""),
+                                     "text", rea::Json("name", "text0",
+                                                       "position", QJsonArray(),
+                                                       "comment", "",
+                                                       "relative_position", QJsonArray(),
+                                                       "content", "",
+                                                       "size", 16,
+                                                       "color", "green",
+                                                       "bold", ""),
+                                     "shape", rea::Json("name", "text0",
+                                                        "position", QJsonArray(),
+                                                        "comment", "",
+                                                        "relative_position", QJsonArray(),
+                                                        "direction", rea::Json(
+                                                            "color", "green",
+                                                            "bolder", rea::Json(
+                                                                "type", "line",
+                                                                "color", "red"
+                                                                ),
+                                                            "radius", 30
+                                                            )));
+        const auto shape = rea::Json(
+                    "image", rea::Json("type", "poly",
+                                       "points", rea::JArray(QJsonArray(),
+                                                             rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
+                                       "color", "blue",
+                                       "face", "50",
+                                       "caption", "image"),
+                    "text", rea::Json("type", "poly",
+                                      "points", rea::JArray(QJsonArray(),
+                                                            rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
+                                      "color", "blue",
+                                      "face", "50",
+                                      "caption", "text"),
+                    "shape", rea::Json("type", "poly",
+                                      "points", rea::JArray(QJsonArray(),
+                                                            rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
+                                      "color", "blue",
+                                      "face", "50",
+                                      "caption", "shape")
+                    );
 
         auto cfg = rea::Json("width", 400,
                              "height", 800,
                              "text", rea::Json("visible", true,
-                                               "size", rea::JArray(60, 30),
+                                               "size", rea::JArray(40, 20),
                                                "location", "middle"));
 
         rea::pipeline::run<QJsonObject>("updateQSGModel_frontend", cfg);
         rea::pipeline::run<QJsonObject>("updateQSGModel_backend", cfg);
+        rea::pipeline::run<QJsonObject>("updateQSGModel_elementend", cfg);
 
         rea::pipeline::add<QString>([](rea::stream<QString>* aInput){
             aInput->out<QJsonObject>(rea::Json("shapes", rea::JArray(
@@ -61,6 +107,12 @@ public:
                                                              )), "backend_pasteShapes");
         }, rea::Json("name", "createBackEndCom"));
 
+        rea::pipeline::add<QString>([shape](rea::stream<QString>* aInput){
+            aInput->out<QJsonObject>(rea::Json("shapes", rea::JArray(
+                                                             shape.value(aInput->data()).toObject()
+                                                             )), "elementend_pasteShapes");
+        }, rea::Json("name", "createElementEndCom"));
+
         auto show_prm = [param](rea::stream<QJsonObject>* aInput){
             auto dt = aInput->data();
             auto shps = dt.value("shapes").toObject();
@@ -73,8 +125,10 @@ public:
         };
         rea::pipeline::add<QJsonObject>(show_prm, rea::Json("name", "updateQSGSelects_frontend"));
         rea::pipeline::add<QJsonObject>(show_prm, rea::Json("name", "updateQSGSelects_backend"));
+        rea::pipeline::add<QJsonObject>(show_prm, rea::Json("name", "updateQSGSelects_elementend"));
     }
-
+private:
+    QJsonObject m_user_data;
 };
 
 static rea::regPip<QQmlApplicationEngine*> init_gui_main([](rea::stream<QQmlApplicationEngine*>* aInput) {
