@@ -41,7 +41,6 @@ public:
                                      "shape", rea::Json("name", "text0",
                                                         "position", QJsonArray(),
                                                         "comment", "",
-                                                        "relative_position", QJsonArray(),
                                                         "direction", rea::Json(
                                                             "color", "green",
                                                             "bolder", rea::Json(

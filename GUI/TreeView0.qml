@@ -4,6 +4,7 @@ import QtQuick 2.0
 Item {
    width: 600
    height: 600
+   property var last_sel
 
    function buildTree(aModel, aData, aLevel = 0){
        if (aData === undefined)
@@ -11,7 +12,7 @@ Item {
        aModel.clear()
        var idx = 0
        for (var i in aData){
-           aModel.append({"name": aData[i]["name"], "level": aLevel, "subNode": []})
+           aModel.append({"name": aData[i]["name"], "level": aLevel, "subNode": [], "idd": aData[i]["id"]})
            buildTree(aModel.get(idx++).subNode, aData[i]["children"], aLevel + 1)
        }
    }
@@ -36,7 +37,6 @@ Item {
                                           "name": "image0",
                                           "position": [],
                                           "comment": "",
-                                          "relative_position": [],
 
                                           "source": "" //url
                                       },
@@ -114,6 +114,13 @@ Item {
                      parent.children[i].visible = !parent.children[i].visible
                   }
                }
+               onClicked: {
+                   if (last_sel)
+                       last_sel.children[0].children[0].children[1].color = "black"
+                   last_sel = objRecursiveColumn
+                   txt.color = "blue"
+                   console.log(idd)
+               }
                Row {
                   id: objRow
                   Item {
@@ -121,10 +128,11 @@ Item {
                      width: model.level * 20
                   }
                   Text {
+                     id: txt
                      text: (objRecursiveColumn.children.length > 2 ?
                               objRecursiveColumn.children[1].visible ?
                               qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name
-                     color: objRecursiveColumn.children.length > 2 ? "blue" : "green"
+                    // color: objRecursiveColumn.children.length > 2 ? "blue" : "green"
                   }
                }
             }
