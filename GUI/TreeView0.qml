@@ -1,10 +1,12 @@
 //ref: https://blog.csdn.net/colouroo/article/details/44700357
 import QtQuick 2.0
+import Pipeline2 1.0
 
 Item {
    width: 600
    height: 600
-   property var last_sel
+   property string sel
+   property string tree_name
 
    function buildTree(aModel, aData, aLevel = 0){
        if (aData === undefined)
@@ -12,7 +14,7 @@ Item {
        aModel.clear()
        var idx = 0
        for (var i in aData){
-           aModel.append({"name": aData[i]["name"], "level": aLevel, "subNode": [], "idd": aData[i]["id"]})
+           aModel.append({"name": aData[i]["name"], "type": aData[i]["type"], "level": aLevel, "subNode": [], "idd": aData[i]["id"]})
            buildTree(aModel.get(idx++).subNode, aData[i]["children"], aLevel + 1)
        }
    }
@@ -90,7 +92,7 @@ Item {
                           ]
                       }
                   ]
-          buildTree(objModel, tmp)
+          //buildTree(objModel, tmp)
 
 //          objModel.append({"name":"Zero","level":0,"subNode":[]})
 //          objModel.append({"name":"One","level":0,"subNode":[]})
@@ -115,11 +117,8 @@ Item {
                   }
                }
                onClicked: {
-                   if (last_sel)
-                       last_sel.children[0].children[0].children[1].color = "black"
-                   last_sel = objRecursiveColumn
-                   txt.color = "blue"
-                   console.log(idd)
+                   sel = idd
+                   Pipeline2.run(tree_name + "_treeViewSelected", "", {tag: "manual"})
                }
                Row {
                   id: objRow
@@ -129,9 +128,10 @@ Item {
                   }
                   Text {
                      id: txt
+                     color: sel === idd ? "blue" : "black"
                      text: (objRecursiveColumn.children.length > 2 ?
                               objRecursiveColumn.children[1].visible ?
-                              qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name
+                              qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name + "(" + type + ")"
                     // color: objRecursiveColumn.children.length > 2 ? "blue" : "green"
                   }
                }
@@ -148,5 +148,18 @@ Item {
          anchors.fill: parent
          model: objModel
          delegate: objRecursiveDelegate
+      }
+
+      Component.onCompleted: {
+          Pipeline2.add(function(aInput){
+              return {data: sel, out: {}}
+          }, {name: tree_name + "_treeViewSelected", type: "Partial", vtype: ""})
+
+          Pipeline2.add(function(aInput){
+              if (aInput["select"] !== undefined)
+                  sel = aInput["select"]
+              buildTree(objModel, [aInput["data"]])
+              return {out: {}}
+          }, {name: tree_name + "_updateTreeView"})
       }
 }

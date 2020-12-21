@@ -1,8 +1,10 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.5
 import "../gui/Basic"
+import "../gui/Component"
 import "../gui/TreeNodeView"
 import QSGBoard 1.0
+import Pipeline2 1.0
 
 ApplicationWindow {
     id: mainwindow
@@ -29,6 +31,8 @@ ApplicationWindow {
                     font.pixelSize: 12
                     width: 40
                     height: 40
+                    onClicked:
+                        Pipeline2.run("_selectFile", {folder: false, save: true, filter: ["Parameter files (*.json)"], tag: {tag: "saveComModel"}})
                 }
                 Button{
                     anchors.verticalCenter: parent.verticalCenter
@@ -263,6 +267,15 @@ ApplicationWindow {
                 }
             }
         }
+
+    }
+    File{
+
+    }
+    PWindow{
+
+    }
+    MsgDialog{
 
     }
     ElementPanel{

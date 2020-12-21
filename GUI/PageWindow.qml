@@ -19,10 +19,14 @@ Window{
             Button{
                 text: "口"
                 width: 40
+                onClicked:
+                    Pipeline2.run("_newObject", {title: Pipeline2.tr("new folder"), content: {name: ""}, tag: {tag: "newFolder"}})
             }
             Button{
                 text: "+"
                 width: 40
+                onClicked:
+                    Pipeline2.run("_newObject", {title: Pipeline2.tr("new page"), content: {name: ""}, tag: {tag: "newPage"}})
             }
         }
         TreeView0{
