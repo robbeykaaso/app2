@@ -10,11 +10,31 @@ QJsonObject comObject::generateDocument(){
     return ret;
 }
 
+void comObject::removeChild(const QString& aID){
+    for (auto i = 0; i < m_children.size(); ++i)
+        if (m_children[i]->getID() == aID){
+            m_parent->m_coms.remove(aID);
+            m_children.erase(m_children.begin() + i);
+            break;
+        }
+}
+
+QJsonObject document::preparePageView(const QJsonObject& aPageConfig){
+    QJsonObject ret;
+    auto clds = aPageConfig.value("children").toArray();
+    for (auto i : clds){
+        auto cld = i.toObject();
+        ret.insert(cld.value("id").toString(), rea::Json(m_shape_template.value(cld.value("type").toString()).toObject(),
+                                                         "points", cld.value("points").toArray()));
+    }
+    return ret;
+}
+
 void document::comManagement(){
     m_root_com = std::make_shared<projectObject>("root", this);
     m_sel_com = m_root_com.get();
 
-    //save com
+    //save document
     rea::pipeline::find("_selectFile")
         ->nextF<QJsonArray>([this](rea::stream<QJsonArray>* aInput){
             auto dt = aInput->data();
@@ -30,6 +50,10 @@ void document::comManagement(){
             m_sel_com = m_coms.value(aInput->data());
             if (!m_sel_com)
                 m_sel_com = m_root_com.get();
+            if (m_sel_com->getType() == "page"){
+                aInput->out<QJsonArray>(rea::JArray(rea::Json("type", "select")), "updateQSGCtrl_elementend");
+                aInput->out<QJsonObject>(rea::Json(m_page_template, "objects", preparePageView(m_sel_com->generateDocument())), "updateQSGModel_elementend");
+            }
         }, rea::Json("tag", "manual"));
 
     //new folder
@@ -64,14 +88,64 @@ void document::comManagement(){
             aInput->out<QJsonObject>(rea::Json("data", m_root_com->generateDocument()), "_updateTreeView");
         }, rea::Json("tag", "newPage"));
 
+    //new com
+    rea::pipeline::find("QSGAttrUpdated_elementend")
+        ->nextF<QJsonArray>([this](rea::stream<QJsonArray>* aInput){
+            auto dt = aInput->data();
+            if (m_sel_com->getType() == "page"){
+                bool ch = false;
+                for (auto i : dt){
+                    auto mdy = i.toObject();
+                    if (mdy.value("cmd").toBool()){
+                        if (mdy.value("type") == "add"){
+                            auto obj = mdy.value("val").toObject();
+                            if (obj.value("com_type") == "image")
+                                m_sel_com->addChild(std::make_shared<imageObject>("image", this, mdy.value("tar").toString()));
+                            else if (obj.value("com_type") == "shape")
+                                m_sel_com->addChild(std::make_shared<shapeObject>("shape", this, mdy.value("tar").toString()));
+                            else if (obj.value("com_type") == "text")
+                                m_sel_com->addChild(std::make_shared<textObject>("text", this, mdy.value("tar").toString()));
+                            ch = true;
+                        }
+                        else if (mdy.value("type") == "del"){
+                            m_sel_com->removeChild(mdy.value("tar").toString());
+                            ch = true;
+                        }
+                        else{
+                            auto com = m_coms.value(mdy.value("obj").toString());
+                            if (com){
+                                auto key = mdy.value("key").toArray()[0].toString();
+                                com->insert(key, mdy.value("val"));
+                            }
+                        }
+                    }
+                }
+                if (ch)
+                    aInput->out<QJsonObject>(rea::Json("data", m_root_com->generateDocument()), "_updateTreeView");
+            }
+        });
+
+    auto sel = m_root_com->getID();
+
+    auto test = std::make_shared<pageObject>("page0", this);
+    m_root_com->addChild(test);
+    m_sel_com = test.get();
+    sel = test->getID();
+
     rea::pipeline::run<QJsonObject>("_updateTreeView", rea::Json("data", m_root_com->generateDocument(),
-                                                                 "select", m_root_com->getID()));
+                                                                 "select", sel));
 }
 
 document::document(){
+    m_page_template = rea::Json("width", 400,
+                                "height", 800,
+                                "text", rea::Json("visible", true,
+                                                  "size", rea::JArray(40, 20),
+                                                  "location", "middle"));
+
     static rea::fsStorage0 stg;
     comManagement();
-    const auto param = rea::Json("com1", rea::Json("param1_1", 1,
+    m_param_template = rea::Json("com1", rea::Json("param1_1", 1,
                                                    "param1_2", true),
                                  "com2", rea::Json("param2_1", "param",
                                                    "param2_2", rea::Json("use", true)),
@@ -82,12 +156,10 @@ document::document(){
                                  "image", rea::Json("name", "image0",
                                                     "position", QJsonArray(),
                                                     "comment", "",
-                                                    "relative_position", QJsonArray(),
                                                     "source", ""),
                                  "text", rea::Json("name", "text0",
                                                    "position", QJsonArray(),
                                                    "comment", "",
-                                                   "relative_position", QJsonArray(),
                                                    "content", "",
                                                    "size", 16,
                                                    "color", "green",
@@ -103,36 +175,33 @@ document::document(){
                                                             ),
                                                         "radius", 30
                                                         )));
-    const auto shape = rea::Json(
+    m_shape_template = rea::Json(
                 "image", rea::Json("type", "poly",
+                                   "com_type", "image",
                                    "points", rea::JArray(QJsonArray(),
                                                          rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
                                    "color", "blue",
                                    "face", "50",
                                    "caption", "image"),
                 "text", rea::Json("type", "poly",
+                                  "com_type", "text",
                                   "points", rea::JArray(QJsonArray(),
                                                         rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
                                   "color", "blue",
                                   "face", "50",
                                   "caption", "text"),
                 "shape", rea::Json("type", "poly",
-                                  "points", rea::JArray(QJsonArray(),
-                                                        rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
-                                  "color", "blue",
-                                  "face", "50",
-                                  "caption", "shape")
+                                   "com_type", "shape",
+                                   "points", rea::JArray(QJsonArray(),
+                                                         rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
+                                   "color", "blue",
+                                   "face", "50",
+                                   "caption", "shape")
                 );
 
-    auto cfg = rea::Json("width", 400,
-                         "height", 800,
-                         "text", rea::Json("visible", true,
-                                           "size", rea::JArray(40, 20),
-                                           "location", "middle"));
-
-    rea::pipeline::run<QJsonObject>("updateQSGModel_frontend", cfg);
-    rea::pipeline::run<QJsonObject>("updateQSGModel_backend", cfg);
-    rea::pipeline::run<QJsonObject>("updateQSGModel_elementend", cfg);
+    rea::pipeline::run<QJsonObject>("updateQSGModel_frontend", m_page_template);
+    rea::pipeline::run<QJsonObject>("updateQSGModel_backend", m_page_template);
+    rea::pipeline::run<QJsonObject>("updateQSGModel_elementend", m_page_template);
 
     rea::pipeline::add<QString>([](rea::stream<QString>* aInput){
         aInput->out<QJsonObject>(rea::Json("shapes", rea::JArray(
@@ -160,19 +229,21 @@ document::document(){
                                                          )), "backend_pasteShapes");
     }, rea::Json("name", "createBackEndCom"));
 
-    rea::pipeline::add<QString>([shape](rea::stream<QString>* aInput){
+    rea::pipeline::add<QString>([this](rea::stream<QString>* aInput){
         aInput->out<QJsonObject>(rea::Json("shapes", rea::JArray(
-                                                         shape.value(aInput->data()).toObject()
+                                                         m_shape_template.value(aInput->data()).toObject()
                                                          )), "elementend_pasteShapes");
     }, rea::Json("name", "createElementEndCom"));
 
-    auto show_prm = [param](rea::stream<QJsonObject>* aInput){
+    auto show_prm = [this](rea::stream<QJsonObject>* aInput){
         auto dt = aInput->data();
         auto shps = dt.value("shapes").toObject();
         QJsonObject prm;
         if (shps.size() > 0){
-            auto key = shps.begin().value().toObject().value("caption").toString();
-            prm = param.value(key).toObject();
+            prm = QJsonObject(*m_coms.value(shps.keys()[0]));
+            prm.remove("points");
+            prm.remove("id");
+            prm.remove("type");
         }
         aInput->out<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
     };
@@ -182,10 +253,14 @@ document::document(){
 }
 
 
-comObject::comObject(const QString& aName, document* aParent){
+comObject::comObject(const QString& aName, document* aParent, const QString& aID){
     m_parent = aParent;
     insert("name", aName);
-    auto id = rea::generateUUID();
+    QString id;
+    if (aID == "")
+        id = rea::generateUUID();
+    else
+        id = aID;
     insert("id", id);
     aParent->m_coms.insert(id, this);
 }
