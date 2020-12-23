@@ -53,7 +53,7 @@ class imageObject : public comObject{
 public:
     imageObject(const QString& aName, document* aParent, const QString& aID = "") : comObject(aName, aParent, aID){
         insert("type", "image");
-        insert("position", QJsonArray());
+        insert("range", QJsonArray());
         insert("comment", "");
         insert("source", "");
     }
@@ -63,7 +63,7 @@ class textObject : public comObject{
 public:
     textObject(const QString& aName, document* aParent, const QString& aID = "") : comObject(aName, aParent, aID){
         insert("type", "text");
-        insert("position", QJsonArray());
+        insert("range", QJsonArray());
         insert("comment", "");
         insert("content", "");
         insert("size", 16);
@@ -77,13 +77,11 @@ public:
     shapeObject(const QString& aName, document* aParent, const QString& aID = "") : comObject(aName, aParent, aID){
         insert("type", "shape");
         insert("comment", "");
-        insert("position", QJsonArray());
-        insert("direction", rea::Json(
-                                "color", "green",
-                                "bolder", rea::Json(
-                                              "type", "line",
-                                              "color", "red"),
-                                "radius", 30));
+        insert("range", QJsonArray());
+        insert("direction_color", "green");
+        insert("direction_border_type", "line");
+        insert("direction_border_color", "red");
+        insert("direction_radius", 30);
     }
 };
 
@@ -94,8 +92,10 @@ private:
     friend comObject;
     void comManagement();
     QJsonObject preparePageView(const QJsonObject& aPageConfig);
+    QJsonValue modifyValue(const QJsonValue& aTarget, const QStringList& aKeys, const int aIndex, const QJsonValue aValue);
     std::shared_ptr<comObject> m_root_com;
     comObject* m_sel_com = nullptr;
+    comObject* m_sel_obj = nullptr;
     QHash<QString, comObject*> m_coms;
 
     QJsonObject m_page_template;
