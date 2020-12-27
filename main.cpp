@@ -225,14 +225,14 @@ document::document(){
 
     static rea::fsStorage0 stg;
     comManagement();
-    m_param_template = rea::Json("com1", rea::Json("param1_1", 1,
-                                                   "param1_2", true),
-                                 "com2", rea::Json("param2_1", "param",
-                                                   "param2_2", rea::Json("use", true)),
-                                 "com3", rea::Json("param3_1", false),
-                                 "com4", rea::Json("param4_1", "value4_1",
-                                                   "param4_2", 34,
-                                                   "param4_3", false),
+    m_param_template = rea::Json("start", QJsonObject(),
+                                 "assign", rea::Json("variable", "",
+                                                     "value", ""),
+                                 "judge", rea::Json("vartiable", ""),
+                                 "redirect", rea::Json("page", ""),
+                                 "show", rea::Json("data", ""),
+                                 "function", rea::Json("event", ""),
+                                 "cloud_data", rea::Json("data", ""),
                                  "image", rea::Json("name", "image0",
                                                     "range", QJsonArray(),
                                                     "comment", "",
@@ -252,6 +252,55 @@ document::document(){
                                                     "direction_border_color", "red",
                                                     "direction_radius", 30));
     m_shape_template = rea::Json(
+                "start", rea::Json("type", "ellipse",
+                                   "com_type", "start",
+                                   "center", rea::JArray(0, 0),
+                                   "radius", rea::JArray(50, 25),
+                                   "color", "green",
+                                   "face", "50",
+                                   "caption", "start"),
+                "assign", rea::Json("type", "poly",
+                                   "com_type", "assign",
+                                   "points", rea::JArray(QJsonArray(),
+                                                         rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
+                                   "color", "gray",
+                                   "face", "50",
+                                   "caption", "assign"),
+                "judge", rea::Json("type", "poly",
+                                   "com_type", "judge",
+                                   "points", rea::JArray(QJsonArray(),
+                                                         rea::JArray(0, 25, 50, 50, 100, 25, 50, 0, 0, 25)),
+                                   "color", "blue",
+                                   "face", "50",
+                                   "caption", "judge"),
+                "redirect", rea::Json("type", "poly",
+                                      "com_type", "redirect",
+                                      "points", rea::JArray(QJsonArray(),
+                                                            rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
+                                      "color", "red",
+                                      "face", "50",
+                                      "caption", "redirect"),
+                "show", rea::Json("type", "poly",
+                                  "com_type", "show",
+                                  "points", rea::JArray(QJsonArray(),
+                                                        rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
+                                  "color", "orange",
+                                  "face", "50",
+                                  "caption", "show"),
+                "function", rea::Json("type", "poly",
+                                      "com_type", "function",
+                                      "points", rea::JArray(QJsonArray(),
+                                                            rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
+                                      "color", "orange",
+                                      "face", "50",
+                                      "caption", "function"),
+                "cloud_data", rea::Json("type", "poly",
+                                        "com_type", "cloud_data",
+                                        "points", rea::JArray(QJsonArray(),
+                                                              rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
+                                        "color", "green",
+                                        "face", "50",
+                                        "caption", "cloud_data"),
                 "image", rea::Json("type", "poly",
                                    "com_type", "image",
                                    "points", rea::JArray(QJsonArray(),
@@ -279,29 +328,15 @@ document::document(){
     rea::pipeline::run<QJsonObject>("updateQSGModel_backend", m_page_template);
     rea::pipeline::run<QJsonObject>("updateQSGModel_elementend", m_page_template);
 
-    rea::pipeline::add<QString>([](rea::stream<QString>* aInput){
+    rea::pipeline::add<QString>([this](rea::stream<QString>* aInput){
         aInput->out<QJsonObject>(rea::Json("shapes", rea::JArray(
-                                                         rea::Json(
-                                                             "type", "poly",
-                                                             "points", rea::JArray(QJsonArray(),
-                                                                                   rea::JArray(0, 0, 100, 0, 100, 50, 0, 50, 0, 0)),
-                                                             "color", "red",
-                                                             "face", "50",
-                                                             "caption", aInput->data()
-                                                             )
+                                                         m_shape_template.value(aInput->data()).toObject()
                                                          )), "frontend_pasteShapes");
     }, rea::Json("name", "createFrontEndCom"));
 
-    rea::pipeline::add<QString>([](rea::stream<QString>* aInput){
+    rea::pipeline::add<QString>([this](rea::stream<QString>* aInput){
         aInput->out<QJsonObject>(rea::Json("shapes", rea::JArray(
-                                                         rea::Json(
-                                                             "type", "poly",
-                                                             "points", rea::JArray(QJsonArray(),
-                                                                                   rea::JArray(0, 25, 50, 50, 100, 25, 50, 0, 0, 25)),
-                                                             "color", "blue",
-                                                             "face", "50",
-                                                             "caption", aInput->data()
-                                                                                                                                  )
+                                                         m_shape_template.value(aInput->data()).toObject()
                                                          )), "backend_pasteShapes");
     }, rea::Json("name", "createBackEndCom"));
 

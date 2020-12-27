@@ -94,7 +94,7 @@ ApplicationWindow {
                 }
                 Button{
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: qsTr("库")
+                    text: qsTr("前台库")
                     font.pixelSize: 12
                     width: 40
                     height: 30
@@ -259,7 +259,7 @@ ApplicationWindow {
                 }
                 Button{
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: qsTr("库")
+                    text: qsTr("后台库")
                     font.pixelSize: 12
                     width: 40
                     height: 30

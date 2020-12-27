@@ -28,10 +28,25 @@ Window{
         }
         model: ListModel{
             ListElement{
-                nm: "com3"
+                nm: "start"
             }
             ListElement{
-                nm: "com4"
+                nm: "assign"
+            }
+            ListElement{
+                nm: "judge"
+            }
+            ListElement{
+                nm: "redirect"
+            }
+            ListElement{
+                nm: "show"
+            }
+            ListElement{
+                nm: "function"
+            }
+            ListElement{
+                nm: "cloud_data"
             }
         }
     }

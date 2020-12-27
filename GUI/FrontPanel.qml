@@ -28,10 +28,22 @@ Window{
         }
         model: ListModel{
             ListElement{
-                nm: "com1"
+                nm: "start"
             }
             ListElement{
-                nm: "com2"
+                nm: "assign"
+            }
+            ListElement{
+                nm: "judge"
+            }
+            ListElement{
+                nm: "redirect"
+            }
+            ListElement{
+                nm: "show"
+            }
+            ListElement{
+                nm: "function"
             }
         }
     }
