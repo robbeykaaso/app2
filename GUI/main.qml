@@ -165,12 +165,18 @@ ApplicationWindow {
                                 caption.text: qsTr("前端事件") + ":"
                                 combo.model: [qsTr("登录事件"), qsTr("xx事件"), qsTr("yy事件")]
                                 ratio: 0.2
+                                Component.onCompleted: {
+                                    Pipeline2.add(function(aInput){
+                                        combo.model = aInput
+                                    }, {name: "_updateFrontEventList", vtype: []})
+                                }
                             }
                             Button{
                                 text: qsTr("添加")
                                 width: 60
                                 font.pixelSize: 10
                                 height: parent.height
+                                onClicked: Pipeline2.run("_newObject", {title: Pipeline2.tr("new front event"), content: {name: ""}, tag: {tag: "newFrontEvent"}})
                             }
                             Button{
                                 text: qsTr("已创数据")
@@ -209,12 +215,18 @@ ApplicationWindow {
                                 caption.text: qsTr("云服务器事件") + ":"
                                 combo.model: [qsTr("登录事件"), qsTr("xx事件"), qsTr("yy事件")]
                                 ratio: 0.2
+                                Component.onCompleted: {
+                                    Pipeline2.add(function(aInput){
+                                        combo.model = aInput
+                                    }, {name: "_updateBackEventList", vtype: []})
+                                }
                             }
                             Button{
                                 text: qsTr("添加")
                                 width: 60
                                 font.pixelSize: 10
                                 height: parent.height
+                                onClicked: Pipeline2.run("_newObject", {title: Pipeline2.tr("new back event"), content: {name: ""}, tag: {tag: "newBackEvent"}})
                             }
                             Button{
                                 text: qsTr("已创数据")
