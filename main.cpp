@@ -284,22 +284,22 @@ void document::frontManagement(){
                             cur->addChild(std::make_shared<startObject>("start", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "assign")
-                            cur->addChild(std::make_shared<shapeObject>("assign", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<assignObject>("assign", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "judge")
-                            cur->addChild(std::make_shared<textObject>("judge", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<judgeObject>("judge", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "redirect")
-                            cur->addChild(std::make_shared<textObject>("redirect", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<redirectObject>("redirect", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "show")
-                            cur->addChild(std::make_shared<textObject>("show", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<showObject>("show", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "function")
-                            cur->addChild(std::make_shared<textObject>("function", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<functionObject>("function", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "focus")
-                            cur->addChild(std::make_shared<textObject>("focus", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<focusObject>("focus", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                     }
                     else if (mdy.value("type") == "del"){
@@ -365,22 +365,22 @@ void document::backManagement(){
                             cur->addChild(std::make_shared<startObject>("start", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "assign")
-                            cur->addChild(std::make_shared<shapeObject>("assign", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<assignObject>("assign", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "judge")
-                            cur->addChild(std::make_shared<textObject>("judge", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<judgeObject>("judge", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "redirect")
-                            cur->addChild(std::make_shared<textObject>("redirect", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<redirectObject>("redirect", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "show")
-                            cur->addChild(std::make_shared<textObject>("show", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<showObject>("show", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "function")
-                            cur->addChild(std::make_shared<textObject>("function", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<functionObject>("function", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                         else if (tp == "cloud_data")
-                            cur->addChild(std::make_shared<textObject>("cloud_data", this, mdy.value("tar").toString()))
+                            cur->addChild(std::make_shared<cloud_dataObject>("cloud_data", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
                     }
                     else if (mdy.value("type") == "del"){
