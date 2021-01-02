@@ -165,10 +165,14 @@ ApplicationWindow {
                                 caption.text: qsTr("前端事件") + ":"
                                 combo.model: [qsTr("登录事件"), qsTr("xx事件"), qsTr("yy事件")]
                                 ratio: 0.2
+                                combo.onCurrentTextChanged: {
+                                    Pipeline2.run("frontEventSelected", combo.currentIndex)
+                                }
                                 Component.onCompleted: {
                                     Pipeline2.add(function(aInput){
-                                        combo.model = aInput
-                                    }, {name: "_updateFrontEventList", vtype: []})
+                                        combo.model = aInput["data"]
+                                        combo.currentIndex = aInput["select"]
+                                    }, {name: "_updateFrontEventList"})
                                 }
                             }
                             Button{
@@ -215,10 +219,14 @@ ApplicationWindow {
                                 caption.text: qsTr("云服务器事件") + ":"
                                 combo.model: [qsTr("登录事件"), qsTr("xx事件"), qsTr("yy事件")]
                                 ratio: 0.2
+                                combo.onCurrentTextChanged: {
+                                    Pipeline2.run("backEventSelected", combo.currentIndex)
+                                }
                                 Component.onCompleted: {
                                     Pipeline2.add(function(aInput){
-                                        combo.model = aInput
-                                    }, {name: "_updateBackEventList", vtype: []})
+                                        combo.model = aInput["data"]
+                                        combo.currentIndex = aInput["select"]
+                                    }, {name: "_updateBackEventList"})
                                 }
                             }
                             Button{

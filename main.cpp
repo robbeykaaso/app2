@@ -48,6 +48,21 @@ QJsonObject document::preparePageView(const QJsonObject& aPageConfig){
     return ret;
 }
 
+QJsonObject document::prepareRoutineView(const QJsonObject& aRoutineConfig){
+    QJsonObject ret;
+    auto clds = aRoutineConfig.value("children").toArray();
+    for (auto i : clds){
+        auto cld = i.toObject();
+        auto shp = m_shape_template.value(cld.value("type").toString()).toObject();
+        for (auto j : shp.keys()){
+            if (j != "type" && cld.contains(j))
+                shp.insert(j, cld.value(j));
+        }
+        ret.insert(cld.value("id").toString(), shp);
+    }
+    return ret;
+}
+
 QJsonValue document::modifyValue(const QJsonValue& aTarget, const QStringList& aKeys,
                           const int aIndex, const QJsonValue aValue) {
     if (aTarget.isObject()) {
@@ -135,12 +150,12 @@ void document::comManagement(){
                             if (tp == "image")
                                 m_sel_com->addChild(std::make_shared<imageObject>("image", this, mdy.value("tar").toString()))
                                         ->initialize(m_param_template.value(tp).toObject());
-                            else if (obj.value("com_type") == "shape")
+                            else if (tp == "shape")
                                 m_sel_com->addChild(std::make_shared<shapeObject>("shape", this, mdy.value("tar").toString()))
                                         ->initialize(m_param_template.value(tp).toObject());
-                            else if (obj.value("com_type") == "text")
+                            else if (tp == "text")
                                 m_sel_com->addChild(std::make_shared<textObject>("text", this, mdy.value("tar").toString()))
-                                        ->initialize(m_param_template.value(tp).toObject());;
+                                        ->initialize(m_param_template.value(tp).toObject());
                             ch = true;
                         }
                         else if (mdy.value("type") == "del"){
@@ -160,7 +175,8 @@ void document::comManagement(){
                                     auto prm = QJsonObject(*com);
                                     prm.remove("id");
                                     prm.remove("type");
-                                    aInput->out<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
+                                    if (m_sel_com && m_last_sel_board == "elementend")
+                                        aInput->out<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
                                 }
                             }
                         }
@@ -176,27 +192,27 @@ void document::comManagement(){
         ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
             auto dt = aInput->data();
             auto kys = dt.value("key").toString().split(";");
-            if (m_sel_com_obj){
+            if (m_sel_obj){
                 QJsonArray old_pts;
                 if (kys[1] == "range"){
-                    auto rg = m_sel_com_obj->value("range").toArray();
+                    auto rg = m_sel_obj->value("range").toArray();
                     auto x = rg[0].toDouble(), y = rg[1].toDouble(), w = rg[2].toDouble(), h = rg[3].toDouble();
                     old_pts = rea::JArray(x, y, x + w, y, x + w, y + h, x, y + h, x, y);
                 }
-                auto tmp = modifyValue(*m_sel_com_obj, kys, 1, dt.value("val")).toObject();
-                m_sel_com_obj->insert(kys[1], tmp.value(kys[1]));
+                auto tmp = modifyValue(*m_sel_obj, kys, 1, dt.value("val")).toObject();
+                m_sel_obj->insert(kys[1], tmp.value(kys[1]));
                 if (kys[1] == "range"){
                     auto shp = tmp.value("id").toString();
                     auto rg = tmp.value("range").toArray();
                     auto x = rg[0].toDouble(), y = rg[1].toDouble(), w = rg[2].toDouble(), h = rg[3].toDouble();
                     auto new_pts = rea::JArray(x, y, x + w, y, x + w, y + h, x, y + h, x, y);
-                    auto redo = [shp, new_pts](){
-                        rea::pipeline::run("updateQSGAttr_elementend", rea::Json("obj", shp,
+                    auto redo = [this, shp, new_pts](){
+                        rea::pipeline::run("updateQSGAttr_" + m_last_sel_board, rea::Json("obj", shp,
                                                                                  "key", rea::JArray("points"),
                                                                                  "val", rea::JArray(QJsonArray(), new_pts)));
                     };
-                    auto undo = [shp, old_pts](){
-                        rea::pipeline::run("updateQSGAttr_elementend", rea::Json("obj", shp,
+                    auto undo = [this, shp, old_pts](){
+                        rea::pipeline::run("updateQSGAttr_" + m_last_sel_board, rea::Json("obj", shp,
                                                                                  "key", rea::JArray("points"),
                                                                                  "val", old_pts));
                     };
@@ -206,7 +222,7 @@ void document::comManagement(){
                     auto shp = tmp.value("id").toString();
                     aInput->out<QJsonObject>(rea::Json("obj", shp,
                                                        "key", rea::JArray("caption"),
-                                                       "val", dt.value("val")), "updateQSGAttr_elementend");
+                                                       "val", dt.value("val")), "updateQSGAttr_" + m_last_sel_board);
                 }
             }
         });
@@ -227,16 +243,164 @@ void document::comManagement(){
 
 void document::frontManagement(){
     m_root_front.push_back(std::make_shared<projectObject>("event1", this));
-    m_sel_front = m_root_front.begin()->get();
+    m_sel_front = 0;
 
-    rea::pipeline::run<QJsonArray>("_updateFrontEventList", rea::JArray(m_sel_front->getName()));
+    //select event
+    rea::pipeline::add<double>([this](rea::stream<double>* aInput){
+        auto dt = int(aInput->data());
+        if (m_sel_front != dt){
+            m_sel_front = dt;
+            aInput->out<QJsonObject>(rea::Json(m_page_template, "objects", prepareRoutineView(m_root_front[m_sel_front]->generateDocument())), "updateQSGModel_frontend");
+        }
+    }, rea::Json("name", "frontEventSelected"));
+
+    //new event
+    rea::pipeline::find("_newObject")
+        ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+            auto dt = aInput->data();
+            auto nm = dt.value("name").toString();
+            if (nm == ""){
+                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
+                return;
+            }
+            m_root_front.push_back(std::make_shared<projectObject>(nm, this));
+            aInput->out<QJsonObject>(prepareEventList(m_root_front, m_sel_front), "_updateFrontEventList");
+        }, rea::Json("tag", "newFrontEvent"));
+
+    //new com
+    rea::pipeline::find("QSGAttrUpdated_frontend")
+        ->nextF<QJsonArray>([this](rea::stream<QJsonArray>* aInput){
+            auto dt = aInput->data();
+            if (m_sel_front < 0)
+                return;
+            auto cur = m_root_front[m_sel_front];
+            for (auto i : dt){
+                auto mdy = i.toObject();
+                if (mdy.value("cmd").toBool()){
+                    if (mdy.value("type") == "add"){
+                        auto obj = mdy.value("val").toObject();
+                        auto tp = obj.value("com_type").toString();
+                        if (tp == "start")
+                            cur->addChild(std::make_shared<startObject>("start", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "assign")
+                            cur->addChild(std::make_shared<shapeObject>("assign", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "judge")
+                            cur->addChild(std::make_shared<textObject>("judge", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "redirect")
+                            cur->addChild(std::make_shared<textObject>("redirect", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "show")
+                            cur->addChild(std::make_shared<textObject>("show", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "function")
+                            cur->addChild(std::make_shared<textObject>("function", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "focus")
+                            cur->addChild(std::make_shared<textObject>("focus", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                    }
+                    else if (mdy.value("type") == "del"){
+                        cur->removeChild(mdy.value("tar").toString());
+                    }
+                    else{
+                        auto com = m_coms.value(mdy.value("obj").toString());
+                        if (com){
+                            auto key = mdy.value("key").toArray()[0].toString();
+                            if (key == "points" || key == "center" || key == "radius"){
+                                com->insert(key, mdy.value("val"));
+                            }
+                        }
+                    }
+                }
+        }
+
+        });
+
+    rea::pipeline::run<QJsonObject>("_updateFrontEventList", prepareEventList(m_root_front, m_sel_front));
 }
 
 void document::backManagement(){
     m_root_back.push_back(std::make_shared<projectObject>("event2", this));
-    m_sel_back = m_root_back.begin()->get();
+    m_sel_back = 0;
 
-    rea::pipeline::run<QJsonArray>("_updateBackEventList", rea::JArray(m_sel_back->getName()));
+    //select event
+    rea::pipeline::add<double>([this](rea::stream<double>* aInput){
+        auto dt = int(aInput->data());
+        if (m_sel_back != dt){
+            m_sel_back = dt;
+            aInput->out<QJsonObject>(rea::Json(m_page_template, "objects", prepareRoutineView(m_root_back[m_sel_back]->generateDocument())), "updateQSGModel_backend");
+        }
+    }, rea::Json("name", "backEventSelected"));
+
+    //new event
+    rea::pipeline::find("_newObject")
+        ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+            auto dt = aInput->data();
+            auto nm = dt.value("name").toString();
+            if (nm == ""){
+                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
+                return;
+            }
+            m_root_back.push_back(std::make_shared<projectObject>(nm, this));
+            aInput->out<QJsonObject>(prepareEventList(m_root_back, m_sel_back), "_updateBackEventList");
+        }, rea::Json("tag", "newBackEvent"));
+
+    //new com
+    rea::pipeline::find("QSGAttrUpdated_backend")
+        ->nextF<QJsonArray>([this](rea::stream<QJsonArray>* aInput){
+            auto dt = aInput->data();
+            if (m_sel_back < 0)
+                return;
+            auto cur = m_root_back[m_sel_back];
+            for (auto i : dt){
+                auto mdy = i.toObject();
+                if (mdy.value("cmd").toBool()){
+                    if (mdy.value("type") == "add"){
+                        auto obj = mdy.value("val").toObject();
+                        auto tp = obj.value("com_type").toString();
+                        if (tp == "start")
+                            cur->addChild(std::make_shared<startObject>("start", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "assign")
+                            cur->addChild(std::make_shared<shapeObject>("assign", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "judge")
+                            cur->addChild(std::make_shared<textObject>("judge", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "redirect")
+                            cur->addChild(std::make_shared<textObject>("redirect", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "show")
+                            cur->addChild(std::make_shared<textObject>("show", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "function")
+                            cur->addChild(std::make_shared<textObject>("function", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "cloud_data")
+                            cur->addChild(std::make_shared<textObject>("cloud_data", this, mdy.value("tar").toString()))
+                                    ->initialize(m_param_template.value(tp).toObject());
+                    }
+                    else if (mdy.value("type") == "del"){
+                        cur->removeChild(mdy.value("tar").toString());
+                    }
+                    else{
+                        auto com = m_coms.value(mdy.value("obj").toString());
+                        if (com){
+                            auto key = mdy.value("key").toArray()[0].toString();
+                            if (key == "points" || key == "center" || key == "radius"){
+                                com->insert(key, mdy.value("val"));
+                            }
+                        }
+                    }
+                }
+        }
+
+        });
+
+    rea::pipeline::run<QJsonObject>("_updateBackEventList", prepareEventList(m_root_back, m_sel_back));
 }
 
 void document::initializeTemplate(){
@@ -374,6 +538,42 @@ void document::regCreateShape(const QString& aType){
     }, rea::Json("name", "create" + aType + "Com"));
 }
 
+QJsonObject document::prepareEventList(const std::vector<std::shared_ptr<comObject>>& aList, int aSelect){
+    QJsonArray lst;
+    for (auto i : aList)
+        lst.push_back(i->getName());
+    return rea::Json("data", lst,
+                     "select", aSelect);
+}
+
+std::function<void(rea::stream<QJsonObject>*)> document::getShowParam(const QString& aBoardName){
+    return [this, aBoardName](rea::stream<QJsonObject>* aInput){
+        //auto tmp = m_sel_obj;
+        //auto tmp2 = m_last_sel_board;
+        //auto tmp3 = aBoardName;
+
+        auto dt = aInput->data();
+        auto shps = dt.value("shapes").toObject();
+        QJsonObject prm;
+        if (shps.size() > 0){
+            if (m_sel_obj && m_last_sel_board != "" && m_last_sel_board != aBoardName)
+                aInput->out<double>(0, m_last_sel_board + "_clearSelects");
+
+            m_sel_obj = m_coms.value(shps.keys()[0]);
+            prm = QJsonObject(*m_sel_obj);
+            prm.remove("id");
+            prm.remove("type");
+
+            prm.remove("center");
+            prm.remove("radius");
+            prm.remove("points");
+            m_last_sel_board = aBoardName;
+        }else if (m_last_sel_board == aBoardName)
+            m_sel_obj = nullptr;
+        aInput->out<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
+    };
+}
+
 document::document(){
     static rea::fsStorage0 stg;
 
@@ -402,22 +602,9 @@ document::document(){
     regCreateShape("BackEnd");
     regCreateShape("ElementEnd");
 
-    auto show_prm = [this](rea::stream<QJsonObject>* aInput){
-        auto dt = aInput->data();
-        auto shps = dt.value("shapes").toObject();
-        QJsonObject prm;
-        if (shps.size() > 0){
-            m_sel_com_obj = m_coms.value(shps.keys()[0]);
-            prm = QJsonObject(*m_sel_com_obj);
-            prm.remove("id");
-            prm.remove("type");
-        }else
-            m_sel_com_obj = nullptr;
-        aInput->out<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
-    };
-    rea::pipeline::add<QJsonObject>(show_prm, rea::Json("name", "updateQSGSelects_frontend"));
-    rea::pipeline::add<QJsonObject>(show_prm, rea::Json("name", "updateQSGSelects_backend"));
-    rea::pipeline::add<QJsonObject>(show_prm, rea::Json("name", "updateQSGSelects_elementend"));
+    rea::pipeline::add<QJsonObject>(getShowParam("frontend"), rea::Json("name", "updateQSGSelects_frontend"));
+    rea::pipeline::add<QJsonObject>(getShowParam("backend"), rea::Json("name", "updateQSGSelects_backend"));
+    rea::pipeline::add<QJsonObject>(getShowParam("elementend"), rea::Json("name", "updateQSGSelects_elementend"));
 }
 
 

@@ -54,22 +54,26 @@ private:
     void backManagement();
     void initializeTemplate();
     void regCreateShape(const QString& aType);
+    QJsonObject prepareEventList(const std::vector<std::shared_ptr<comObject>>& aList, int aSelect);
     QJsonObject preparePageView(const QJsonObject& aPageConfig);
+    QJsonObject prepareRoutineView(const QJsonObject& aRoutineConfig);
     QJsonValue modifyValue(const QJsonValue& aTarget, const QStringList& aKeys, const int aIndex, const QJsonValue aValue);
+    std::function<void(rea::stream<QJsonObject>*)> getShowParam(const QString& aBoardName);
     std::shared_ptr<comObject> m_root_com;
     comObject* m_sel_com = nullptr;
-    comObject* m_sel_com_obj = nullptr;
+    comObject* m_sel_obj = nullptr;
 
     std::vector<std::shared_ptr<comObject>> m_root_front;
-    comObject* m_sel_front = nullptr;
+    int m_sel_front = - 1;
     comObject* m_sel_front_obj = nullptr;
 
     std::vector<std::shared_ptr<comObject>> m_root_back;
-    comObject* m_sel_back = nullptr;
+    int m_sel_back = - 1;
     comObject* m_sel_back_obj = nullptr;
 
     QHash<QString, comObject*> m_coms;
 
+    QString m_last_sel_board = "";
     QJsonObject m_page_template;
     QJsonObject m_param_template;
     QJsonObject m_shape_template;
