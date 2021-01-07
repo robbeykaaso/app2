@@ -6,5 +6,6 @@
         <file>GUI/ElementPanel.qml</file>
         <file>GUI/TreeView0.qml</file>
         <file>GUI/PageWindow.qml</file>
+        <file>GUI/DataPanel.qml</file>
     </qresource>
 </RCC>

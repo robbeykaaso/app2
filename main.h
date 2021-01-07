@@ -44,6 +44,30 @@ public: \
     } \
 };
 
+OBJTYPE(data)
+
+class projectObject : public comObject{
+public:
+    projectObject(const QString& aName, document* aParent, const QString& aID = "") : comObject(aName, aParent, aID){
+        insert("type", "project");
+    }
+    QJsonObject generateDataDocument(){
+        return getDataRoot()->generateDocument();
+    }
+    std::shared_ptr<comObject> addChildData(std::shared_ptr<comObject> aData){
+        return getDataRoot()->addChild(aData);
+    }
+    std::shared_ptr<projectObject> getDataRoot(){
+        if (!m_data){
+            m_data = std::make_shared<projectObject>(getName(), getParent());
+            m_data->insert("value", "#" + getID());
+        }
+        return m_data;
+    }
+private:
+    std::shared_ptr<projectObject> m_data;
+};
+
 class document{
 public:
     document();
@@ -54,7 +78,7 @@ private:
     void backManagement();
     void initializeTemplate();
     void regCreateShape(const QString& aType);
-    QJsonObject prepareEventList(const std::vector<std::shared_ptr<comObject>>& aList, int aSelect);
+    QJsonObject prepareEventList(const std::vector<std::shared_ptr<projectObject>>& aList, int aSelect);
     QJsonObject preparePageView(const QJsonObject& aPageConfig);
     QJsonObject prepareRoutineView(const QJsonObject& aRoutineConfig);
     QJsonValue modifyValue(const QJsonValue& aTarget, const QStringList& aKeys, const int aIndex, const QJsonValue aValue);
@@ -63,13 +87,15 @@ private:
     comObject* m_sel_com = nullptr;
     comObject* m_sel_obj = nullptr;
 
-    std::vector<std::shared_ptr<comObject>> m_root_front;
+    std::vector<std::shared_ptr<projectObject>> m_root_front;
     int m_sel_front = - 1;
     comObject* m_sel_front_obj = nullptr;
+    comObject* m_sel_front_data = nullptr;
 
-    std::vector<std::shared_ptr<comObject>> m_root_back;
+    std::vector<std::shared_ptr<projectObject>> m_root_back;
     int m_sel_back = - 1;
     comObject* m_sel_back_obj = nullptr;
+    comObject* m_sel_back_data = nullptr;
 
     QHash<QString, comObject*> m_coms;
 

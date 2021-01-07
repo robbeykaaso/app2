@@ -187,6 +187,7 @@ ApplicationWindow {
                                 width: 60
                                 font.pixelSize: 10
                                 height: parent.height
+                                onClicked: frontdata.show()
                             }
                         }
                         Rectangle{
@@ -241,6 +242,7 @@ ApplicationWindow {
                                 width: 60
                                 font.pixelSize: 10
                                 height: parent.height
+                                onClicked: backdata.show()
                             }
                         }
                         Rectangle{
@@ -309,5 +311,13 @@ ApplicationWindow {
     }
     PageWindow{
         id: pg
+    }
+    DataPanel{
+        name: "frontdata"
+        id: frontdata
+    }
+    DataPanel{
+        name: "backdata"
+        id: backdata
     }
 }
