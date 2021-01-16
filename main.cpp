@@ -270,6 +270,8 @@ void document::frontManagement(){
                 aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "no parent event!"), "popMessage");
             else{
                 auto cld = std::make_shared<dataObject>(dt.value("name").toString(), this);
+                cld->insert("atype", "data");
+                cld->insert("type", dt.value("type"));
                 cld->insert("value", dt.value("value").toString());
                 if (!m_sel_front_data)
                     m_sel_front_data = m_root_front[m_sel_front].get();

@@ -12,7 +12,10 @@ public:
         return value("id").toString();
     }
     QString getType(){
-        return value("type").toString();
+        if (contains("atype"))
+            return value("atype").toString();
+        else
+            return value("type").toString();
     }
     QString getName(){
         return value("name").toString();
