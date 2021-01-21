@@ -47,7 +47,8 @@ Window{
                 width: 40
                 height: 30
                 onClicked:
-                    Pipeline2.run("_newObject", {title: Pipeline2.tr("new data"), content: {name: "", type: {model: ["string", "number", "on-off", "select", "event", "image", "page", "cloud", "relative"], index: 0}, value: ""}, tag: {tag: "new_" + name}})
+                    wd.show()
+                    //Pipeline2.run("_newObject", {title: Pipeline2.tr("new data"), content: {name: "", type: {model: ["string", "number", "on-off", "select", "event", "image", "page", "cloud", "relative"], index: 0}, value: ""}, tag: {tag: "new_" + name}})
             }
         }
         TreeView0{
@@ -55,5 +56,8 @@ Window{
             width: parent.width
             height: parent.height - 30
         }
+    }
+    DataWindow{
+        id: wd
     }
 }

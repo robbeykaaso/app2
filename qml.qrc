@@ -7,5 +7,6 @@
         <file>GUI/TreeView0.qml</file>
         <file>GUI/PageWindow.qml</file>
         <file>GUI/DataPanel.qml</file>
+        <file>GUI/DataWindow.qml</file>
     </qresource>
 </RCC>
