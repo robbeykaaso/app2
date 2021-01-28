@@ -1,7 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Window 2.12
 import QtQuick.Controls 2.5
-import Pipeline2 1.0
+import Pipeline 1.0
 
 Window{
     modality: Qt.NonModal
@@ -20,13 +20,13 @@ Window{
                 text: "口"
                 width: 40
                 onClicked:
-                    Pipeline2.run("_newObject", {title: Pipeline2.tr("new folder"), content: {name: ""}, tag: {tag: "newFolder"}})
+                    Pipeline.run("_newObject", {title: Pipeline.tr("new folder"), content: {name: ""}}, "newFolder")
             }
             Button{
                 text: "+"
                 width: 40
                 onClicked:
-                    Pipeline2.run("_newObject", {title: Pipeline2.tr("new page"), content: {name: ""}, tag: {tag: "newPage"}})
+                    Pipeline.run("_newObject", {title: Pipeline.tr("new page"), content: {name: ""}}, "newPage")
             }
         }
         TreeView0{

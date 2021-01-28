@@ -1,7 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Window 2.12
 import QtQuick.Controls 2.5
-import Pipeline2 1.0
+import Pipeline 1.0
 
 Window{
     modality: Qt.NonModal
@@ -21,7 +21,7 @@ Window{
             border.color: "black"
             MouseArea{
                 anchors.fill: parent
-                onClicked: Pipeline2.run("createFrontEndCom", nm)
+                onClicked: Pipeline.run("createFrontEndCom", nm)
             }
         }
         ScrollBar.vertical: ScrollBar {

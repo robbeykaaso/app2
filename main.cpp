@@ -90,50 +90,66 @@ void document::comManagement(){
     m_root_com = std::make_shared<projectObject>("element_root", this);
     m_sel_com = m_root_com.get();
 
+    //select page for data
+    rea::pipeline::add<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+        QJsonArray pgs;
+        QJsonArray nms;
+        for (auto i : m_coms.keys())
+            if (m_coms.value(i)->getType() == "page"){
+                nms.push_back(m_coms.value(i)->getName());
+                pgs.push_back(i);
+            }
+        aInput->setData(rea::Json("title", "pages", "content", rea::Json("value", rea::Json("model", nms, "value", pgs))))->out();
+    }, rea::Json("name", "_selectPage"));
+
     //select com
     rea::pipeline::find("_treeViewSelected")
         ->nextF<QString>([this](rea::stream<QString>* aInput){
             if (m_sel_com && m_sel_com->getType() == "page")
-                aInput->out<QJsonArray>(rea::JArray(rea::Json("type", "select")), "updateQSGCtrl_elementend");
+                aInput->outs<QJsonArray>(rea::JArray(rea::Json("type", "select")), "updateQSGCtrl_elementend");
             m_sel_com = m_coms.value(aInput->data());
             if (!m_sel_com)
                 m_sel_com = m_root_com.get();
             if (m_sel_com->getType() == "page"){
-                aInput->out<QJsonObject>(rea::Json(m_page_template, "objects", preparePageView(m_sel_com->generateDocument())), "updateQSGModel_elementend");
+                aInput->outs<QJsonObject>(rea::Json(m_page_template, "objects", preparePageView(m_sel_com->generateDocument())), "updateQSGModel_elementend");
             }
-        }, rea::Json("tag", "manual"));
+        }, "manual");
 
     //new folder
     rea::pipeline::find("_newObject")
         ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
             auto dt = aInput->data();
+            if (dt.empty())
+                return;
             auto nm = dt.value("name").toString();
             if (nm == ""){
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
             }else if (!m_sel_com)
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "no parent com!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "no parent com!"), "popMessage");
             else if (m_sel_com->getType() == "project" || m_sel_com->getType() == "folder")
                 m_sel_com->addChild(std::make_shared<folderObject>(dt.value("name").toString(), m_sel_com->getParent()));
             else
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "create failed!"), "popMessage");
-            aInput->out<QJsonObject>(rea::Json("data", m_root_com->generateDocument()), "_updateTreeView");
-        }, rea::Json("tag", "newFolder"));
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "create failed!"), "popMessage");
+            aInput->outs<QJsonObject>(rea::Json("data", m_root_com->generateDocument()), "_updateTreeView");
+        }, "newFolder");
 
     //new page
     rea::pipeline::find("_newObject")
         ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
             auto dt = aInput->data();
+            if (dt.empty())
+                return;
             auto nm = dt.value("name").toString();
             if (nm == ""){
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
             }else if (!m_sel_com)
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "no parent com!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "no parent com!"), "popMessage");
             else if (m_sel_com->getType() == "project" || m_sel_com->getType() == "folder")
                 m_sel_com->addChild(std::make_shared<pageObject>(dt.value("name").toString(), m_sel_com->getParent()));
             else
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "create failed!"), "popMessage");
-            aInput->out<QJsonObject>(rea::Json("data", m_root_com->generateDocument()), "_updateTreeView");
-        }, rea::Json("tag", "newPage"));
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "create failed!"), "popMessage");
+            aInput->outs<QJsonObject>(rea::Json("data", m_root_com->generateDocument()), "_updateTreeView");
+        }, "newPage");
 
     //new com
     rea::pipeline::find("QSGAttrUpdated_elementend")
@@ -176,14 +192,14 @@ void document::comManagement(){
                                     prm.remove("id");
                                     prm.remove("type");
                                     if (m_sel_com && m_last_sel_board == "elementend")
-                                        aInput->out<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
+                                        aInput->outs<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
                                 }
                             }
                         }
                     }
                 }
                 if (ch)
-                    aInput->out<QJsonObject>(rea::Json("data", m_root_com->generateDocument()), "_updateTreeView");
+                    aInput->outs<QJsonObject>(rea::Json("data", m_root_com->generateDocument()), "_updateTreeView");
             }
         });
 
@@ -217,10 +233,10 @@ void document::comManagement(){
                                                                                  "val", old_pts));
                     };
                     redo();
-                    aInput->out<rea::ICommand>(rea::ICommand(redo, undo), "addCommand");
+                    aInput->outs<rea::ICommand>(rea::ICommand(redo, undo), "addCommand");
                 }else if (kys[1] == "name"){
                     auto shp = tmp.value("id").toString();
-                    aInput->out<QJsonObject>(rea::Json("obj", shp,
+                    aInput->outs<QJsonObject>(rea::Json("obj", shp,
                                                        "key", rea::JArray("caption"),
                                                        "val", dt.value("val")), "updateQSGAttr_" + m_last_sel_board);
                 }
@@ -245,6 +261,17 @@ void document::frontManagement(){
     m_root_front.push_back(std::make_shared<projectObject>("event1", this));
     m_sel_front = 0;
 
+    //select event for data
+    rea::pipeline::add<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+        QJsonArray pgs;
+        QJsonArray nms;
+        for (auto i : m_root_front){
+            nms.push_back(i->getName());
+            pgs.push_back(i->getID());
+        }
+        aInput->setData(rea::Json("title", "events", "content", rea::Json("value", rea::Json("model", nms, "value", pgs))))->out();
+    }, rea::Json("name", "_selectFrontEvent"));
+
     //update data value
     rea::pipeline::add<QString>([this](rea::stream<QString>* aInput){
         if (m_sel_front_data && m_sel_front_data->getType() == "data"){
@@ -256,18 +283,20 @@ void document::frontManagement(){
     rea::pipeline::find("frontdata_treeViewSelected")
         ->nextF<QString>([this](rea::stream<QString>* aInput){
             m_sel_front_data = m_coms.value(aInput->data());
-            aInput->out<QString>(m_sel_front_data->value("value").toString(), "frontdata_updateSelectedDataValueGUI");
-        }, rea::Json("tag", "manual"));
+            aInput->outs<QString>(m_sel_front_data->value("value").toString(), "frontdata_updateSelectedDataValueGUI");
+        }, "manual");
 
     //new data
     rea::pipeline::find("_newObject")
         ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
             auto dt = aInput->data();
+            if (dt.empty())
+                return;
             auto nm = dt.value("name").toString();
             if (nm == ""){
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
             }else if (m_sel_front < 0)
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "no parent event!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "no parent event!"), "popMessage");
             else{
                 auto cld = std::make_shared<dataObject>(dt.value("name").toString(), this);
                 cld->insert("atype", "data");
@@ -279,35 +308,37 @@ void document::frontManagement(){
                     m_root_front[m_sel_front]->addChildData(cld);
                 else
                     m_sel_front_data->addChild(cld);
-                aInput->out<QString>(m_sel_front_data->value("value").toString(), "frontdata_updateSelectedDataValueGUI");
+                aInput->outs<QString>(m_sel_front_data->value("value").toString(), "frontdata_updateSelectedDataValueGUI");
             }
-            aInput->out<QJsonObject>(rea::Json("data", m_root_front[m_sel_front]->generateDataDocument()), "frontdata_updateTreeView");
-        }, rea::Json("tag", "new_frontdata"));
+            aInput->outs<QJsonObject>(rea::Json("data", m_root_front[m_sel_front]->generateDataDocument()), "frontdata_updateTreeView");
+        }, "new_frontdata", rea::Json("name", "new_frontdata"));
 
     //select event
     rea::pipeline::add<double>([this](rea::stream<double>* aInput){
         auto dt = int(aInput->data());
         if (m_sel_front != dt){
             m_sel_front = dt;
-            aInput->out<QJsonObject>(rea::Json(m_page_template, "objects", prepareRoutineView(m_root_front[m_sel_front]->generateDocument())), "updateQSGModel_frontend");
+            aInput->outs<QJsonObject>(rea::Json(m_page_template, "objects", prepareRoutineView(m_root_front[m_sel_front]->generateDocument())), "updateQSGModel_frontend");
         }
-        aInput->out<QJsonObject>(rea::Json("data", m_root_front[m_sel_front]->generateDataDocument(),
+        aInput->outs<QJsonObject>(rea::Json("data", m_root_front[m_sel_front]->generateDataDocument(),
                                            "select", m_root_front[m_sel_front]->getDataRoot()->getID()), "frontdata_updateTreeView");
-        aInput->out<QString>("", "frontdata_updateSelectedDataValueGUI");
+        aInput->outs<QString>("", "frontdata_updateSelectedDataValueGUI");
     }, rea::Json("name", "frontEventSelected"));
 
     //new event
     rea::pipeline::find("_newObject")
         ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
             auto dt = aInput->data();
+            if (dt.empty())
+                return;
             auto nm = dt.value("name").toString();
             if (nm == ""){
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
                 return;
             }
             m_root_front.push_back(std::make_shared<projectObject>(nm, this));
-            aInput->out<QJsonObject>(prepareEventList(m_root_front, m_sel_front), "_updateFrontEventList");
-        }, rea::Json("tag", "newFrontEvent"));
+            aInput->outs<QJsonObject>(prepareEventList(m_root_front, m_sel_front), "_updateFrontEventList");
+        }, "newFrontEvent");
 
     //new com
     rea::pipeline::find("QSGAttrUpdated_frontend")
@@ -368,6 +399,17 @@ void document::backManagement(){
     m_root_back.push_back(std::make_shared<projectObject>("event2", this));
     m_sel_back = 0;
 
+    //select event for data
+    rea::pipeline::add<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+        QJsonArray pgs;
+        QJsonArray nms;
+        for (auto i : m_root_back){
+            nms.push_back(i->getName());
+            pgs.push_back(i->getID());
+        }
+        aInput->setData(rea::Json("title", "cloud", "content", rea::Json("value", rea::Json("model", nms, "value", pgs))))->out();
+    }, rea::Json("name", "_selectBackEvent"));
+
     //update data value
     rea::pipeline::add<QString>([this](rea::stream<QString>* aInput){
         if (m_sel_back_data && m_sel_back_data->getType() == "data"){
@@ -379,18 +421,20 @@ void document::backManagement(){
     rea::pipeline::find("backdata_treeViewSelected")
         ->nextF<QString>([this](rea::stream<QString>* aInput){
             m_sel_back_data = m_coms.value(aInput->data());
-            aInput->out<QString>(m_sel_back_data->value("value").toString(), "backdata_updateSelectedDataValueGUI");
-        }, rea::Json("tag", "manual"));
+            aInput->outs<QString>(m_sel_back_data->value("value").toString(), "backdata_updateSelectedDataValueGUI");
+        }, "manual");
 
     //new data
     rea::pipeline::find("_newObject")
         ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
             auto dt = aInput->data();
+            if (dt.empty())
+                return;
             auto nm = dt.value("name").toString();
             if (nm == ""){
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
             }else if (m_sel_back < 0)
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "no parent event!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "no parent event!"), "popMessage");
             else{
                 if (!m_sel_back_data)
                     m_sel_back_data = m_root_front[m_sel_back].get();
@@ -398,35 +442,37 @@ void document::backManagement(){
                     m_root_back[m_sel_back]->addChildData(std::make_shared<dataObject>(dt.value("name").toString(), this));
                 else
                     m_sel_back_data->addChild(std::make_shared<dataObject>(dt.value("name").toString(), this));
-                aInput->out<QString>(m_sel_back_data->value("value").toString(), "backdata_updateSelectedDataValueGUI");
+                aInput->outs<QString>(m_sel_back_data->value("value").toString(), "backdata_updateSelectedDataValueGUI");
             }
-            aInput->out<QJsonObject>(rea::Json("data", m_root_back[m_sel_back]->generateDataDocument()), "backdata_updateTreeView");
-        }, rea::Json("tag", "new_backdata"));
+            aInput->outs<QJsonObject>(rea::Json("data", m_root_back[m_sel_back]->generateDataDocument()), "backdata_updateTreeView");
+        }, "new_backdata", rea::Json("name", "new_backdata"));
 
     //select event
     rea::pipeline::add<double>([this](rea::stream<double>* aInput){
         auto dt = int(aInput->data());
         if (m_sel_back != dt){
             m_sel_back = dt;
-            aInput->out<QJsonObject>(rea::Json(m_page_template, "objects", prepareRoutineView(m_root_back[m_sel_back]->generateDocument())), "updateQSGModel_backend");
+            aInput->outs<QJsonObject>(rea::Json(m_page_template, "objects", prepareRoutineView(m_root_back[m_sel_back]->generateDocument())), "updateQSGModel_backend");
         }
-        aInput->out<QJsonObject>(rea::Json("data", m_root_back[m_sel_back]->generateDataDocument(),
+        aInput->outs<QJsonObject>(rea::Json("data", m_root_back[m_sel_back]->generateDataDocument(),
                                            "select", m_root_back[m_sel_back]->getDataRoot()->getID()), "backdata_updateTreeView");
-        aInput->out<QString>("", "backdata_updateSelectedDataValueGUI");
+        aInput->outs<QString>("", "backdata_updateSelectedDataValueGUI");
     }, rea::Json("name", "backEventSelected"));
 
     //new event
     rea::pipeline::find("_newObject")
         ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
             auto dt = aInput->data();
+            if (dt.empty())
+                return;
             auto nm = dt.value("name").toString();
             if (nm == ""){
-                aInput->out<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
+                aInput->outs<QJsonObject>(rea::Json("title", "warning", "text", "invalid name!"), "popMessage");
                 return;
             }
             m_root_back.push_back(std::make_shared<projectObject>(nm, this));
-            aInput->out<QJsonObject>(prepareEventList(m_root_back, m_sel_back), "_updateBackEventList");
-        }, rea::Json("tag", "newBackEvent"));
+            aInput->outs<QJsonObject>(prepareEventList(m_root_back, m_sel_back), "_updateBackEventList");
+        }, "newBackEvent");
 
     //new com
     rea::pipeline::find("QSGAttrUpdated_backend")
@@ -517,7 +563,7 @@ void document::initializeTemplate(){
                                                    "size", 16,
                                                    "color", "green",
                                                    "bold", ""),
-                                 "shape", rea::Json("name", "text0",
+                                 "shape", rea::Json("name", "shape0",
                                                     "range", QJsonArray(),
                                                     "comment", "",
                                                     "direction_color", "green",
@@ -612,7 +658,7 @@ void document::initializeTemplate(){
 void document::regCreateShape(const QString& aType){
     auto tp = aType.toLower();
     rea::pipeline::add<QString>([this, tp](rea::stream<QString>* aInput){
-        aInput->out<QJsonObject>(rea::Json("shapes", rea::JArray(
+        aInput->outs<QJsonObject>(rea::Json("shapes", rea::JArray(
                                                          m_shape_template.value(aInput->data()).toObject()
                                                          )), tp + "_pasteShapes");
     }, rea::Json("name", "create" + aType + "Com"));
@@ -637,7 +683,7 @@ std::function<void(rea::stream<QJsonObject>*)> document::getShowParam(const QStr
         QJsonObject prm;
         if (shps.size() > 0){
             if (m_sel_obj && m_last_sel_board != "" && m_last_sel_board != aBoardName)
-                aInput->out<double>(0, m_last_sel_board + "_clearSelects");
+                aInput->outs<double>(0, m_last_sel_board + "_clearSelects");
 
             m_sel_obj = m_coms.value(shps.keys()[0]);
             prm = QJsonObject(*m_sel_obj);
@@ -650,7 +696,7 @@ std::function<void(rea::stream<QJsonObject>*)> document::getShowParam(const QStr
             m_last_sel_board = aBoardName;
         }else if (m_last_sel_board == aBoardName)
             m_sel_obj = nullptr;
-        aInput->out<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
+        aInput->outs<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
     };
 }
 
@@ -661,6 +707,8 @@ document::document(){
     rea::pipeline::find("_selectFile")
         ->nextF<QJsonArray>([this](rea::stream<QJsonArray>* aInput){
             auto dt = aInput->data();
+            if (dt.size() == 0)
+                return;
             auto pth = dt[0].toString();
             if (!pth.endsWith(".json"))
                 pth += ".json";
@@ -673,11 +721,11 @@ document::document(){
                 back.push_back(i->generateDocument());
                 alldata.push_back(i->generateDataDocument());
             }
-            aInput->out<rea::stgJson>(rea::stgJson(rea::Json("element", m_root_com->generateDocument(),
+            aInput->outs<rea::stgJson>(rea::stgJson(rea::Json("element", m_root_com->generateDocument(),
                                                              "frontend", front,
                                                              "backend", back,
                                                              "alldata", alldata), pth), "writeJson");
-        }, rea::Json("tag", "saveComModel"));
+        }, "saveComModel");
 
     initializeTemplate();
     comManagement();

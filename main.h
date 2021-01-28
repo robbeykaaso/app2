@@ -1,7 +1,7 @@
 #ifndef REAL_DOCUMENT_H_
 #define REAL_DOCUMENT_H_
 
-#include "reactive2.h"
+#include "reaC++.h"
 
 class document;
 

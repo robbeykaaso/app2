@@ -1,7 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Window 2.12
 import QtQuick.Controls 2.5
-import Pipeline2 1.0
+import Pipeline 1.0
 
 Window{
     property string name
@@ -33,12 +33,12 @@ Window{
                     verticalAlignment: Text.AlignVCenter
                     font.pixelSize: 12
                     onAccepted: {
-                        Pipeline2.run(name + "_updateSelectedDataValue", text)
+                        Pipeline.run(name + "_updateSelectedDataValue", text)
                     }
                     Component.onCompleted: {
-                        Pipeline2.add(function(aInput){
-                            text = aInput
-                        }, {name: name + "_updateSelectedDataValueGUI", vtype: ""})
+                        Pipeline.add(function(aInput){
+                            text = aInput.data()
+                        }, {name: name + "_updateSelectedDataValueGUI", vtype: "string"})
                     }
                 }
             }
@@ -59,5 +59,6 @@ Window{
     }
     DataWindow{
         id: wd
+        dname: name
     }
 }

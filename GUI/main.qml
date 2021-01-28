@@ -1,10 +1,10 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.5
-import "../gui/Basic"
-import "../gui/Component"
-import "../gui/TreeNodeView"
+import "../qml/gui/Basic"
+import "../qml/gui/Pipe"
+import "../qml/gui/Pipe/TreeNodeView"
 import QSGBoard 1.0
-import Pipeline2 1.0
+import Pipeline 1.0
 
 ApplicationWindow {
     id: mainwindow
@@ -32,7 +32,7 @@ ApplicationWindow {
                     width: 40
                     height: 40
                     onClicked:
-                        Pipeline2.run("_selectFile", {folder: false, save: true, filter: ["Parameter files (*.json)"], tag: {tag: "saveComModel"}})
+                        Pipeline.run("_selectFile", {folder: false, save: true, filter: ["Parameter files (*.json)"]}, "saveComModel")
                 }
                 Button{
                     anchors.verticalCenter: parent.verticalCenter
@@ -166,12 +166,13 @@ ApplicationWindow {
                                 combo.model: [qsTr("登录事件"), qsTr("xx事件"), qsTr("yy事件")]
                                 ratio: 0.2
                                 combo.onCurrentTextChanged: {
-                                    Pipeline2.run("frontEventSelected", combo.currentIndex)
+                                    Pipeline.run("frontEventSelected", combo.currentIndex)
                                 }
                                 Component.onCompleted: {
-                                    Pipeline2.add(function(aInput){
-                                        combo.model = aInput["data"]
-                                        combo.currentIndex = aInput["select"]
+                                    Pipeline.add(function(aInput){
+                                        var dt = aInput.data()
+                                        combo.model = dt["data"]
+                                        combo.currentIndex = dt["select"]
                                     }, {name: "_updateFrontEventList"})
                                 }
                             }
@@ -180,7 +181,7 @@ ApplicationWindow {
                                 width: 60
                                 font.pixelSize: 10
                                 height: parent.height
-                                onClicked: Pipeline2.run("_newObject", {title: Pipeline2.tr("new front event"), content: {name: ""}, tag: {tag: "newFrontEvent"}})
+                                onClicked: Pipeline.run("_newObject", {title: Pipeline.tr("new front event"), content: {name: ""}}, "newFrontEvent")
                             }
                             Button{
                                 text: qsTr("已创数据")
@@ -221,12 +222,13 @@ ApplicationWindow {
                                 combo.model: [qsTr("登录事件"), qsTr("xx事件"), qsTr("yy事件")]
                                 ratio: 0.2
                                 combo.onCurrentTextChanged: {
-                                    Pipeline2.run("backEventSelected", combo.currentIndex)
+                                    Pipeline.run("backEventSelected", combo.currentIndex)
                                 }
                                 Component.onCompleted: {
-                                    Pipeline2.add(function(aInput){
-                                        combo.model = aInput["data"]
-                                        combo.currentIndex = aInput["select"]
+                                    Pipeline.add(function(aInput){
+                                        var dt = aInput.data()
+                                        combo.model = dt["data"]
+                                        combo.currentIndex = dt["select"]
                                     }, {name: "_updateBackEventList"})
                                 }
                             }
@@ -235,7 +237,7 @@ ApplicationWindow {
                                 width: 60
                                 font.pixelSize: 10
                                 height: parent.height
-                                onClicked: Pipeline2.run("_newObject", {title: Pipeline2.tr("new back event"), content: {name: ""}, tag: {tag: "newBackEvent"}})
+                                onClicked: Pipeline.run("_newObject", {title: Pipeline.tr("new back event"), content: {name: ""}}, "newBackEvent")
                             }
                             Button{
                                 text: qsTr("已创数据")

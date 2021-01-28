@@ -1,6 +1,6 @@
 //ref: https://blog.csdn.net/colouroo/article/details/44700357
 import QtQuick 2.0
-import Pipeline2 1.0
+import Pipeline 1.0
 
 Item {
    width: 600
@@ -118,7 +118,7 @@ Item {
                }
                onClicked: {
                    sel = idd
-                   Pipeline2.run(tree_name + "_treeViewSelected", "", {tag: "manual"})
+                   Pipeline.run(tree_name + "_treeViewSelected", "", "manual")
                }
                Row {
                   id: objRow
@@ -151,15 +151,16 @@ Item {
       }
 
       Component.onCompleted: {
-          Pipeline2.add(function(aInput){
-              return {data: sel, out: {}}
-          }, {name: tree_name + "_treeViewSelected", type: "Partial", vtype: ""})
+          Pipeline.add(function(aInput){
+              aInput.setData(sel).out()
+          }, {name: tree_name + "_treeViewSelected", type: "Partial", vtype: "string"})
 
-          Pipeline2.add(function(aInput){
-              if (aInput["select"] !== undefined)
-                  sel = aInput["select"]
-              buildTree(objModel, [aInput["data"]])
-              return {out: {}}
+          Pipeline.add(function(aInput){
+              var dt = aInput.data()
+              if (dt["select"] !== undefined)
+                  sel = dt["select"]
+              buildTree(objModel, [dt["data"]])
+              aInput.out()
           }, {name: tree_name + "_updateTreeView"})
       }
 }
