@@ -3,6 +3,43 @@
 #include "command.h"
 #include "qsgBoard.h"
 
+class qsgPluginSelectApp2 : public rea::qsgPluginTransform{
+public:
+    qsgPluginSelectApp2(std::shared_ptr<rea::qsgBoardPlugin> aOriginSelect, const QJsonObject& aConfig) : qsgPluginTransform(aConfig){
+        m_origin_select = aOriginSelect;
+    }
+protected:
+    void wheelEvent(QWheelEvent *event) override{
+        m_origin_select->wheelEvent(event);
+    }
+    void mousePressEvent(QMouseEvent *event) override{
+        m_origin_select->mousePressEvent(event);
+    }
+    void beforeDestroy() override{
+        m_origin_select->beforeDestroy();
+    }
+    void mouseReleaseEvent(QMouseEvent *event) override {
+        m_origin_select->mouseReleaseEvent(event);
+    }
+    void hoverMoveEvent(QHoverEvent *event) override {
+        qsgPluginTransform::hoverMoveEvent(event);
+        m_origin_select->hoverMoveEvent(event);
+    }
+    QString getName(rea::qsgBoard* aParent = nullptr) override{
+        rea::qsgBoardPlugin::getName(aParent);
+        return m_origin_select->getName(aParent);
+    }
+private:
+    std::shared_ptr<rea::qsgBoardPlugin> m_origin_select;
+};
+
+static rea::regPip<QJsonObject, rea::pipePartial> plugin_select([](rea::stream<QJsonObject>* aInput){
+    aInput->var<std::shared_ptr<rea::qsgBoardPlugin>>("result",
+                                                      std::make_shared<qsgPluginSelectApp2>(aInput->varData<std::shared_ptr<rea::qsgBoardPlugin>>("result"),
+                                                                                            aInput->data()))
+        ->out();
+}, rea::Json("after", "create_qsgboardplugin_select"));
+
 class qsgPluginDrawLink : public rea::qsgPluginTransform{
 public:
     qsgPluginDrawLink(const QJsonObject& aConfig) : qsgPluginTransform(aConfig){
@@ -114,7 +151,7 @@ private:
 
 static rea::regPip<QQmlApplicationEngine*> init_drawline([](rea::stream<QQmlApplicationEngine*>* aInput){
         rea::pipeline::add<QJsonObject, rea::pipePartial>([](rea::stream<QJsonObject>* aInput){
-            aInput->outs<std::shared_ptr<rea::qsgBoardPlugin>>(std::make_shared<qsgPluginDrawLink>(aInput->data()));
+            aInput->var<std::shared_ptr<rea::qsgBoardPlugin>>("result", std::make_shared<qsgPluginDrawLink>(aInput->data()))->out();
         }, rea::Json("name", "create_qsgboardplugin_drawlink"));
 }, QJsonObject(), "regQML");
 

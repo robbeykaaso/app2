@@ -106,7 +106,7 @@ ApplicationWindow {
                     font.pixelSize: 10
                     width: 40
                     height: 30
-                    onClicked: Pipeline.run("updateQSGCtrl_frontend", [{type: "selectApp2"}])
+                    onClicked: Pipeline.run("updateQSGCtrl_frontend", [{type: "select"}])
                 }
                 Button{
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -212,7 +212,7 @@ ApplicationWindow {
                             height: parent.height - 30
                             QSGBoard{
                                 name: "frontend"
-                                plugins: [{type: "selectApp2"}]
+                                plugins: [{type: "select"}]
                                 anchors.fill: parent
                                 Component.onDestruction: {
                                     beforeDestroy()
@@ -268,7 +268,7 @@ ApplicationWindow {
                             height: parent.height - 30
                             QSGBoard{
                                 name: "backend"
-                                plugins: [{type: "selectApp2"}]
+                                plugins: [{type: "select"}]
                                 anchors.fill: parent
                                 Component.onDestruction: {
                                     beforeDestroy()
@@ -311,7 +311,7 @@ ApplicationWindow {
                     font.pixelSize: 10
                     width: 40
                     height: 30
-                    onClicked: Pipeline.run("updateQSGCtrl_backend", [{type: "selectApp2"}])
+                    onClicked: Pipeline.run("updateQSGCtrl_backend", [{type: "select"}])
                 }
                 Button{
                     anchors.horizontalCenter: parent.horizontalCenter
