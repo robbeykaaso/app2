@@ -1,6 +1,122 @@
 #include "main.h"
 #include "storage0.h"
 #include "command.h"
+#include "qsgBoard.h"
+
+class qsgPluginDrawLink : public rea::qsgPluginTransform{
+public:
+    qsgPluginDrawLink(const QJsonObject& aConfig) : qsgPluginTransform(aConfig){
+
+    }
+    ~qsgPluginDrawLink() override{
+        if (m_parent)
+            m_parent->setCursor(Qt::CursorShape::ArrowCursor);
+    }
+private:
+    QJsonArray getGeometry(){
+        return rea::JArray(QJsonArray(),
+                           QJsonArray({m_st.x(), m_st.y(),
+                                       m_ed.x(), m_ed.y()}));
+    }
+    void tryCancel(){
+        if (m_shape != ""){
+            removeShape(m_shape)();
+            m_shape = "";
+        }
+    }
+    std::function<void(void)> addLink(const QString& aShape, const QJsonArray& aPoints, const QString aStart, const QString aEnd = ""){
+        auto nm = getParentName();
+        auto id = getQSGModel()->value("id");
+        return [nm, aShape, aPoints, id, aStart, aEnd](){
+            rea::pipeline::run("updateQSGAttr_" + nm,
+                               rea::Json("key", rea::JArray("objects"),
+                                         "type", "add",
+                                         "tar", aShape,
+                                         "val", rea::Json(
+                                                    "type", "poly",
+                                                    "tag", "link",
+                                                    "points", aPoints,
+                                                    "color", "grey",
+                                                    "text", rea::Json("visible", false),
+                                                    "arrow", rea::Json("visible", true)),
+                                         "pole", QJsonArray({aStart, aEnd}),
+                                         "id", id), "addLink");
+        };
+    }
+protected:
+    QString m_shape;
+    QPointF m_st, m_ed;
+    QString m_start;
+    QString getName(rea::qsgBoard* aParent = nullptr) override {
+        if (aParent)
+            aParent->setCursor(QCursor(QPixmap("cursor.png")));
+        return qsgPluginTransform::getName(aParent);
+    }
+    void beforeDestroy() override{
+        tryCancel();
+        qsgPluginTransform::beforeDestroy();
+    }
+    void mouseReleaseEvent(QMouseEvent *event) override {
+        qsgPluginTransform::mouseReleaseEvent(event);
+        if (event->button() == Qt::LeftButton){
+            std::shared_ptr<rea::qsgObject> sel = nullptr;
+            QString st;
+            auto objs = getQSGModel()->getQSGObjects();
+            for (auto i : objs.keys()){
+                auto obj = objs.value(i);
+                if (obj->value("tag") != "link" && obj->bePointSelected(m_wcspos.x(), m_wcspos.y())){
+                    st = i;
+                    sel = objs.value(i);
+                    break;
+                }
+            }
+            if (!sel)
+                return;
+            m_wcspos = std::dynamic_pointer_cast<rea::shapeObject>(sel)->getBoundBox().center();
+            if (m_shape == ""){
+                m_shape = newShapeID();
+                m_st = m_wcspos;
+                m_ed = m_st;
+                m_start = st;
+                addLink(m_shape, getGeometry(), st)();
+            }else{
+                m_ed = m_wcspos;
+                rea::pipeline::run("updateQSGAttr_" + getParentName(),
+                                   rea::Json("obj", m_shape,
+                                             "key", QJsonArray({"points"}),
+                                             "val", getGeometry(),
+                                             "force", true,
+                                             "pole", rea::JArray(m_start, st),
+                                             "id", getQSGModel()->value("id")),
+                                   "drawLine");
+                rea::pipeline::run<rea::ICommand>("addCommand",
+                                                  rea::ICommand(addLink(m_shape, getGeometry(), m_start, st),
+                                                                removeShape(m_shape)),
+                                                  "manual");
+                m_shape = "";
+            }
+        }
+    }
+    void hoverMoveEvent(QHoverEvent *event) override {
+        qsgPluginTransform::hoverMoveEvent(event);
+        if (m_shape != ""){
+            m_ed = m_wcspos;
+            rea::pipeline::run("updateQSGAttr_" + getParentName(),
+                               rea::Json("obj", m_shape,
+                                         "key", QJsonArray({"points"}),
+                                         "val", getGeometry()),
+                               "drawLink");
+        }
+    }
+private:
+    QImage m_img;
+};
+
+static rea::regPip<QQmlApplicationEngine*> init_drawline([](rea::stream<QQmlApplicationEngine*>* aInput){
+        rea::pipeline::add<QJsonObject, rea::pipePartial>([](rea::stream<QJsonObject>* aInput){
+            aInput->outs<std::shared_ptr<rea::qsgBoardPlugin>>(std::make_shared<qsgPluginDrawLink>(aInput->data()));
+        }, rea::Json("name", "create_qsgboardplugin_drawlink"));
+}, QJsonObject(), "regQML");
 
 
 OBJTYPE(folder)
@@ -340,7 +456,7 @@ void document::frontManagement(){
             aInput->outs<QJsonObject>(prepareEventList(m_root_front, m_sel_front), "_updateFrontEventList");
         }, "newFrontEvent");
 
-    //new com
+    //new front com
     rea::pipeline::find("QSGAttrUpdated_frontend")
         ->nextF<QJsonArray>([this](rea::stream<QJsonArray>* aInput){
             auto dt = aInput->data();
@@ -379,11 +495,35 @@ void document::frontManagement(){
                         cur->removeChild(mdy.value("tar").toString());
                     }
                     else{
-                        auto com = m_coms.value(mdy.value("obj").toString());
+                        auto id = mdy.value("obj").toString();
+                        auto com = m_coms.value(id);
                         if (com){
                             auto key = mdy.value("key").toArray()[0].toString();
                             if (key == "points" || key == "center" || key == "radius"){
                                 com->insert(key, mdy.value("val"));
+                            }
+                        }
+                    }
+                }else{
+                    auto poles = mdy.value("pole").toArray();
+                    if (poles.size() > 0){
+                        if (mdy.value("type") == "add"){
+                            auto lnk = std::make_shared<linkObject>("", this, mdy.value("tar").toString());
+                            m_links.push_back(lnk);
+                            auto cfg = mdy.value("val").toObject();
+                            cfg.remove("type");
+                            lnk->initialize(rea::Json(cfg, "start", poles[0]));
+                        }else{
+                            auto id = mdy.value("obj").toString();
+                            auto com = m_coms.value(id);
+                            if (com){
+                                auto key = mdy.value("key").toArray()[0].toString();
+                                if (key == "points"){
+                                    com->insert(key, mdy.value("val"));
+                                }
+                                auto st = poles[0].toString();
+                                m_coms.value(st)->insert("next", rea::Json("default", id));
+                                com->insert("end", poles[1].toString());
                             }
                         }
                     }
@@ -474,7 +614,7 @@ void document::backManagement(){
             aInput->outs<QJsonObject>(prepareEventList(m_root_back, m_sel_back), "_updateBackEventList");
         }, "newBackEvent");
 
-    //new com
+    //new back com
     rea::pipeline::find("QSGAttrUpdated_backend")
         ->nextF<QJsonArray>([this](rea::stream<QJsonArray>* aInput){
             auto dt = aInput->data();

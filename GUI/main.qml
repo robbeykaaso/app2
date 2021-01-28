@@ -95,10 +95,26 @@ ApplicationWindow {
                 Button{
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: qsTr("前台库")
-                    font.pixelSize: 12
+                    font.pixelSize: 10
                     width: 40
                     height: 30
                     onClicked: front.show()
+                }
+                Button{
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("选择")
+                    font.pixelSize: 10
+                    width: 40
+                    height: 30
+                    onClicked: Pipeline.run("updateQSGCtrl_frontend", [{type: "selectApp2"}])
+                }
+                Button{
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("连接")
+                    font.pixelSize: 10
+                    width: 40
+                    height: 30
+                    onClicked: Pipeline.run("updateQSGCtrl_frontend", [{type: "drawlink"}])
                 }
             }
 
@@ -196,7 +212,7 @@ ApplicationWindow {
                             height: parent.height - 30
                             QSGBoard{
                                 name: "frontend"
-                                plugins: [{type: "select"}]
+                                plugins: [{type: "selectApp2"}]
                                 anchors.fill: parent
                                 Component.onDestruction: {
                                     beforeDestroy()
@@ -252,7 +268,7 @@ ApplicationWindow {
                             height: parent.height - 30
                             QSGBoard{
                                 name: "backend"
-                                plugins: [{type: "select"}]
+                                plugins: [{type: "selectApp2"}]
                                 anchors.fill: parent
                                 Component.onDestruction: {
                                     beforeDestroy()
@@ -288,6 +304,22 @@ ApplicationWindow {
                     width: 40
                     height: 30
                     onClicked: back.show()
+                }
+                Button{
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("选择")
+                    font.pixelSize: 10
+                    width: 40
+                    height: 30
+                    onClicked: Pipeline.run("updateQSGCtrl_backend", [{type: "selectApp2"}])
+                }
+                Button{
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("连接")
+                    font.pixelSize: 10
+                    width: 40
+                    height: 30
+                    onClicked: Pipeline.run("updateQSGCtrl_backend", [{type: "drawlink"}])
                 }
             }
         }
