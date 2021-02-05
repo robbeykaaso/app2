@@ -107,6 +107,8 @@ private:
     QJsonObject m_page_template;
     QJsonObject m_param_template;
     QJsonObject m_shape_template;
+
+    QString m_link_type;
 private:
     std::vector<std::shared_ptr<linkObject>> m_links;
 };

@@ -106,7 +106,7 @@ ApplicationWindow {
                     font.pixelSize: 10
                     width: 40
                     height: 30
-                    onClicked: Pipeline.run("updateQSGCtrl_frontend", [{type: "select"}])
+                    onClicked: Pipeline.run("updateQSGCtrl_frontend", [{type: "select", tag: "noAffine"}])
                 }
                 Button{
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -121,14 +121,14 @@ ApplicationWindow {
             Item{
                 width: parent.width - 120
                 height: parent.height
-                QSGBoard{
+                /*QSGBoard{
                     name: "background"
                     plugins: [{type: "select"}]
                     anchors.fill: parent
                     Component.onDestruction: {
                         beforeDestroy()
                     }
-                }
+                }*/
                 Row{
                     anchors.fill: parent
                     Column{
@@ -212,7 +212,7 @@ ApplicationWindow {
                             height: parent.height - 30
                             QSGBoard{
                                 name: "frontend"
-                                plugins: [{type: "select"}]
+                                plugins: [{type: "select", tag: "noAffine"}]
                                 anchors.fill: parent
                                 Component.onDestruction: {
                                     beforeDestroy()
@@ -268,7 +268,7 @@ ApplicationWindow {
                             height: parent.height - 30
                             QSGBoard{
                                 name: "backend"
-                                plugins: [{type: "select"}]
+                                plugins: [{type: "select", tag: "noAffine"}]
                                 anchors.fill: parent
                                 Component.onDestruction: {
                                     beforeDestroy()
@@ -311,7 +311,7 @@ ApplicationWindow {
                     font.pixelSize: 10
                     width: 40
                     height: 30
-                    onClicked: Pipeline.run("updateQSGCtrl_backend", [{type: "select"}])
+                    onClicked: Pipeline.run("updateQSGCtrl_backend", [{type: "select", tag: "noAffine"}])
                 }
                 Button{
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -329,7 +329,8 @@ ApplicationWindow {
 
     }
     PWindow{
-
+        bodycolor: "azure"
+        titlecolor: "white"
     }
     MsgDialog{
 

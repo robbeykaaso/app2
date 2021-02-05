@@ -34,18 +34,31 @@ private:
 };
 
 static rea::regPip<QJsonObject, rea::pipePartial> plugin_select([](rea::stream<QJsonObject>* aInput){
-    aInput->var<std::shared_ptr<rea::qsgBoardPlugin>>("result",
-                                                      std::make_shared<qsgPluginSelectApp2>(aInput->varData<std::shared_ptr<rea::qsgBoardPlugin>>("result"),
-                                                                                            aInput->data()))
+    if (aInput->data().value("tag") == "noAffine")
+        aInput->var<std::shared_ptr<rea::qsgBoardPlugin>>("result",
+                                                          std::make_shared<qsgPluginSelectApp2>(aInput->varData<std::shared_ptr<rea::qsgBoardPlugin>>("result"),
+                                                                                                aInput->data()))
         ->out();
 }, rea::Json("after", "create_qsgboardplugin_select"));
 
 class qsgPluginDrawLink : public rea::qsgPluginTransform{
+private:
+    rea::pipe0* m_set_link_type;
 public:
     qsgPluginDrawLink(const QJsonObject& aConfig) : qsgPluginTransform(aConfig){
-
+        m_set_link_type = rea::pipeline::find("_newObject")
+            ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+                auto dt = aInput->data();
+                m_link_type = dt.value("yes").toBool() ? "yes" : "no";
+                aInput->outs<double>(0);
+            }, "selectLinkType")
+            ->nextF<double>([this](rea::stream<double>* aInput){
+                addLink(m_shape, getGeometry(), m_start)();
+            }, "", rea::Json("name", "addDefaultLink"));
     }
     ~qsgPluginDrawLink() override{
+        rea::pipeline::remove(m_set_link_type->actName());
+        rea::pipeline::remove("addDefaultLink");
         if (m_parent)
             m_parent->setCursor(Qt::CursorShape::ArrowCursor);
     }
@@ -64,18 +77,23 @@ private:
     std::function<void(void)> addLink(const QString& aShape, const QJsonArray& aPoints, const QString aStart, const QString aEnd = ""){
         auto nm = getParentName();
         auto id = getQSGModel()->value("id");
-        return [nm, aShape, aPoints, id, aStart, aEnd](){
+        auto tp = m_link_type;
+        return [nm, aShape, aPoints, id, aStart, aEnd, tp](){
+            auto val = rea::Json(
+                "type", "poly",
+                "tag", "link",
+                "points", aPoints,
+                "color", "grey",
+                "arrow", rea::Json("visible", true));
+            if (tp == "default")
+                val.insert("text", rea::Json("visible", false));
+            else
+                val.insert("caption", tp);
             rea::pipeline::run("updateQSGAttr_" + nm,
                                rea::Json("key", rea::JArray("objects"),
                                          "type", "add",
                                          "tar", aShape,
-                                         "val", rea::Json(
-                                                    "type", "poly",
-                                                    "tag", "link",
-                                                    "points", aPoints,
-                                                    "color", "grey",
-                                                    "text", rea::Json("visible", false),
-                                                    "arrow", rea::Json("visible", true)),
+                                         "val", val,
                                          "pole", QJsonArray({aStart, aEnd}),
                                          "id", id), "addLink");
         };
@@ -84,6 +102,7 @@ protected:
     QString m_shape;
     QPointF m_st, m_ed;
     QString m_start;
+    QString m_link_type;
     QString getName(rea::qsgBoard* aParent = nullptr) override {
         if (aParent)
             aParent->setCursor(QCursor(QPixmap("cursor.png")));
@@ -115,7 +134,8 @@ protected:
                 m_st = m_wcspos;
                 m_ed = m_st;
                 m_start = st;
-                addLink(m_shape, getGeometry(), st)();
+                m_link_type = "default";
+                rea::pipeline::run<QString>("selectLinkType", m_start, "selectLinkType");
             }else{
                 m_ed = m_wcspos;
                 rea::pipeline::run("updateQSGAttr_" + getParentName(),
@@ -212,6 +232,16 @@ QJsonObject document::prepareRoutineView(const QJsonObject& aRoutineConfig){
                 shp.insert(j, cld.value(j));
         }
         ret.insert(cld.value("id").toString(), shp);
+
+        auto nxt = cld.value("next").toObject();
+        for (auto i : nxt.keys()){
+            auto dflt = nxt.value(i).toString();
+            if (m_coms.contains(dflt)){
+                QJsonObject lnk = *m_coms.value(dflt);
+                lnk.insert("type", "poly");
+                ret.insert(dflt, lnk);
+            }
+        }
     }
     return ret;
 }
@@ -493,6 +523,21 @@ void document::frontManagement(){
             aInput->outs<QJsonObject>(prepareEventList(m_root_front, m_sel_front), "_updateFrontEventList");
         }, "newFrontEvent");
 
+    //selectLinkType
+    rea::pipeline::add<QString>([this](rea::stream<QString>* aInput){
+        if  (m_coms.value(aInput->data())->value("type").toString() == "judge"){
+            aInput->outs<QJsonObject>(rea::Json("title", "select link type", "content", rea::Json("yes", true)), "_newObject");
+        }else{
+            m_link_type = "default";
+            aInput->outs<double>(0, "addDefaultLink");
+        }
+    }, rea::Json("name", "selectLinkType"))
+        ->next("_newObject")
+        ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+            auto dt = aInput->data();
+            m_link_type = dt.value("yes").toBool() ? "yes" : "no";
+        }, "selectLinkType");
+
     //new front com
     rea::pipeline::find("QSGAttrUpdated_frontend")
         ->nextF<QJsonArray>([this](rea::stream<QJsonArray>* aInput){
@@ -559,7 +604,7 @@ void document::frontManagement(){
                                     com->insert(key, mdy.value("val"));
                                 }
                                 auto st = poles[0].toString();
-                                m_coms.value(st)->insert("next", rea::Json("default", id));
+                                m_coms.value(st)->insert("next", rea::Json(m_coms.value(st)->value("next").toObject(), m_link_type, id));
                                 com->insert("end", poles[1].toString());
                             }
                         }
