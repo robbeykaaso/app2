@@ -4,9 +4,33 @@
 #include "qsgBoard.h"
 
 class qsgPluginSelectApp2 : public rea::qsgPluginTransform{
+private:
+    bool m_no_affine;
+    rea::pipe0* m_hide_handle = nullptr;
+
+    QRectF calcSelectsBound(const QSet<QString>& aSelects, const QMap<QString, std::shared_ptr<rea::qsgObject>>& aShapes){
+        QRectF bnd;
+        int idx = 0;
+        for (auto i : aSelects){
+            auto cur = reinterpret_cast<rea::shapeObject*>(aShapes.value(i).get())->getBoundBox();
+            if (idx++){
+                bnd = QRectF(QPointF(std::min(bnd.left(), cur.left()), std::min(bnd.top(), cur.top())),
+                             QPointF(std::max(bnd.right(), cur.right()), std::max(bnd.bottom(), cur.bottom())));
+            }else
+                bnd = cur;
+        }
+        return bnd;
+    }
 public:
     qsgPluginSelectApp2(std::shared_ptr<rea::qsgBoardPlugin> aOriginSelect, const QJsonObject& aConfig) : qsgPluginTransform(aConfig){
         m_origin_select = aOriginSelect;
+        m_no_affine = aConfig.value("tag") == "noAffine";
+    }
+    ~qsgPluginSelectApp2() override{
+        if (m_hide_handle){
+            rea::pipeline::removeAspect(getParentName() + "_updateSelectedMask", rea::pipe0::AspectType::AspectAround, m_hide_handle->actName());
+            rea::pipeline::remove(m_hide_handle->actName());
+        }
     }
 protected:
     void wheelEvent(QWheelEvent *event) override{
@@ -27,6 +51,21 @@ protected:
     }
     QString getName(rea::qsgBoard* aParent = nullptr) override{
         rea::qsgBoardPlugin::getName(aParent);
+
+        if (m_no_affine)
+            m_hide_handle = rea::pipeline::add<QSet<QString>>([this](rea::stream<QSet<QString>>* aInput){
+                auto sels = aInput->data();
+                rea::pointList pts;
+                if (sels.size() > 0){
+                    auto bnd = calcSelectsBound(aInput->data(), getQSGModel()->getQSGObjects());
+                    pts.push_back(bnd.topLeft());
+                    pts.push_back(bnd.topRight());
+                    pts.push_back(bnd.bottomRight());
+                    pts.push_back(bnd.bottomLeft());
+                }
+                //aInput->var<QSet<QString>>("selects", sels)->outs<rea::pointList>(pts);
+            }, rea::Json("around", getParentName() + "_updateSelectedMask"));
+
         return m_origin_select->getName(aParent);
     }
 private:
@@ -47,14 +86,13 @@ private:
 public:
     qsgPluginDrawLink(const QJsonObject& aConfig) : qsgPluginTransform(aConfig){
         m_set_link_type = rea::pipeline::find("_newObject")
-            ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+            ->next(rea::pipeline::add<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
                 auto dt = aInput->data();
                 m_link_type = dt.value("yes").toBool() ? "yes" : "no";
                 aInput->outs<double>(0);
-            }, "selectLinkType")
-            ->nextF<double>([this](rea::stream<double>* aInput){
+            })->nextBF<double>([this](rea::stream<double>* aInput){
                 addLink(m_shape, getGeometry(), m_start)();
-            }, "", rea::Json("name", "addDefaultLink"));
+            }, "", rea::Json("name", "addDefaultLink")), "selectLinkType");
     }
     ~qsgPluginDrawLink() override{
         rea::pipeline::remove(m_set_link_type->actName());
@@ -894,20 +932,20 @@ QJsonObject document::prepareEventList(const std::vector<std::shared_ptr<project
                      "select", aSelect);
 }
 
-std::function<void(rea::stream<QJsonObject>*)> document::getShowParam(const QString& aBoardName){
-    return [this, aBoardName](rea::stream<QJsonObject>* aInput){
+void document::getShowParam(const QString& aBoardName){
+    rea::pipeline::find(aBoardName + "_selectedChanged")
+        ->nextF<QSet<QString>>([this, aBoardName](rea::stream<QSet<QString>>* aInput){
         //auto tmp = m_sel_obj;
         //auto tmp2 = m_last_sel_board;
         //auto tmp3 = aBoardName;
 
-        auto dt = aInput->data();
-        auto shps = dt.value("shapes").toObject();
+        auto shps = aInput->data();
         QJsonObject prm;
         if (shps.size() > 0){
             if (m_sel_obj && m_last_sel_board != "" && m_last_sel_board != aBoardName)
                 aInput->outs<double>(0, m_last_sel_board + "_clearSelects");
 
-            m_sel_obj = m_coms.value(shps.keys()[0]);
+            m_sel_obj = m_coms.value(*shps.begin());
             prm = QJsonObject(*m_sel_obj);
             prm.remove("id");
             prm.remove("type");
@@ -919,7 +957,7 @@ std::function<void(rea::stream<QJsonObject>*)> document::getShowParam(const QStr
         }else if (m_last_sel_board == aBoardName)
             m_sel_obj = nullptr;
         aInput->outs<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
-    };
+    });
 }
 
 document::document(){
@@ -957,9 +995,9 @@ document::document(){
     regCreateShape("BackEnd");
     regCreateShape("ElementEnd");
 
-    rea::pipeline::add<QJsonObject>(getShowParam("frontend"), rea::Json("name", "updateQSGSelects_frontend"));
-    rea::pipeline::add<QJsonObject>(getShowParam("backend"), rea::Json("name", "updateQSGSelects_backend"));
-    rea::pipeline::add<QJsonObject>(getShowParam("elementend"), rea::Json("name", "updateQSGSelects_elementend"));
+    //getShowParam("frontend");
+    //getShowParam("backend");
+    getShowParam("elementend");
 }
 
 

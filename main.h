@@ -86,7 +86,7 @@ private:
     QJsonObject preparePageView(const QJsonObject& aPageConfig);
     QJsonObject prepareRoutineView(const QJsonObject& aRoutineConfig);
     QJsonValue modifyValue(const QJsonValue& aTarget, const QStringList& aKeys, const int aIndex, const QJsonValue aValue);
-    std::function<void(rea::stream<QJsonObject>*)> getShowParam(const QString& aBoardName);
+    void getShowParam(const QString& aBoardName);
     std::shared_ptr<comObject> m_root_com;
     comObject* m_sel_com = nullptr;
     comObject* m_sel_obj = nullptr;
