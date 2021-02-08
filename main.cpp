@@ -912,7 +912,13 @@ void document::initializeTemplate(){
                 );
     rea::pipeline::run<QJsonObject>("updateQSGModel_frontend", m_page_template);
     rea::pipeline::run<QJsonObject>("updateQSGModel_backend", m_page_template);
-    rea::pipeline::run<QJsonObject>("updateQSGModel_elementend", m_page_template);
+    rea::pipeline::run<QJsonObject>("updateQSGModel_elementend", rea::Json(m_page_template,
+                                                                           "objects", rea::Json("background",
+                                                                                                rea::Json(
+                                                                                                    "type", "image",
+                                                                                                    "path", "phone.png",
+                                                                                                    "range", rea::JArray(0, 0, 400, 800),
+                                                                                                    "text", rea::Json("visible", false)))));
 }
 
 void document::regCreateShape(const QString& aType){

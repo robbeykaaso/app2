@@ -109,3 +109,9 @@ target_include_directories(REA_APP2 PUBLIC
 # 链接动态库文件
 #target_link_libraries( hello_binary PRIVATE hello::library)
 include_directories(${REA_INCLUDE_DIRS})
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/resource"
+    "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/.."
+    COMMENT "copying resource.")
