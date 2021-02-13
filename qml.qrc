@@ -8,5 +8,6 @@
         <file>GUI/PageWindow.qml</file>
         <file>GUI/DataPanel.qml</file>
         <file>GUI/DataWindow.qml</file>
+        <file>GUI/LabelEdit.qml</file>
     </qresource>
 </RCC>

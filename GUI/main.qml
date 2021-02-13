@@ -218,6 +218,40 @@ ApplicationWindow {
                                     beforeDestroy()
                                 }
                             }
+                            LabelEdit{
+                                property var selects
+                                visible: false
+                                onUpdatelabel: function(aLabel){
+                                    var sels = Object.keys(selects)
+                                    if (sels.length > 0)
+                                        Pipeline.run("updateFrontComValue", {sel: sels[0], val: aLabel})
+                                }
+                                Component.onCompleted: {
+                                    Pipeline.find("updateQSGSelects_frontend").next(function(aInput){
+                                        var dt = aInput.data()
+                                        if (dt["bound"]){
+                                            visible = true
+                                            var bnd = dt["bound"]
+                                            x = bnd[0] + (bnd[2] - bnd[0] - 80) * 0.5
+                                            y = (bnd[3] + bnd[1]) * 0.5 - 15
+                                            var shps = dt["shapes"]
+                                            var lbl = ""
+                                            var idx = 0
+                                            selects = shps
+                                            for (var i in shps){
+                                                if (idx++)
+                                                    lbl += ";"
+                                                lbl += shps[i]["value"] || ""
+                                            }
+                                            label = lbl
+                                        }else
+                                            visible = false
+                                    })
+                                    Pipeline.add(function(aInput){
+                                        updateMenu(aInput.data())
+                                    }, {name: "frontdata_updateLabelCandidates", vtype: "array"})
+                                }
+                            }
                             border.color: "black"
                         }
                     }
@@ -274,6 +308,41 @@ ApplicationWindow {
                                     beforeDestroy()
                                 }
                             }
+                            LabelEdit{
+                                property var selects
+                                visible: false
+                                onUpdatelabel: function(aLabel){
+                                    var sels = Object.keys(selects)
+                                    if (sels.length > 0)
+                                        Pipeline.run("updateBackComValue", {sel: sels[0], val: aLabel})
+                                }
+                                Component.onCompleted: {
+                                    Pipeline.find("updateQSGSelects_backend").next(function(aInput){
+                                        var dt = aInput.data()
+                                        if (dt["bound"]){
+                                            visible = true
+                                            var bnd = dt["bound"]
+                                            x = bnd[0] + (bnd[2] - bnd[0] - 80) * 0.5
+                                            y = (bnd[3] + bnd[1]) * 0.5 - 15
+                                            var shps = dt["shapes"]
+                                            var lbl = ""
+                                            var idx = 0
+                                            selects = shps
+                                            for (var i in shps){
+                                                if (idx++)
+                                                    lbl += ";"
+                                                lbl += shps[i]["value"] || ""
+                                            }
+                                            label = lbl
+                                        }else
+                                            visible = false
+                                    })
+                                    Pipeline.add(function(aInput){
+                                        updateMenu(aInput.data())
+                                    }, {name: "backdata_updateLabelCandidates", vtype: "array"})
+                                }
+                            }
+
                             border.color: "black"
                         }
                     }

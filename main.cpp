@@ -56,13 +56,22 @@ protected:
             m_hide_handle = rea::pipeline::add<QSet<QString>>([this](rea::stream<QSet<QString>>* aInput){
                 auto sels = aInput->data();
                 rea::pointList pts;
+                QJsonObject sel_objs;
+                QPointF tl, br;
                 if (sels.size() > 0){
                     auto bnd = calcSelectsBound(aInput->data(), getQSGModel()->getQSGObjects());
                     pts.push_back(bnd.topLeft());
                     pts.push_back(bnd.topRight());
                     pts.push_back(bnd.bottomRight());
                     pts.push_back(bnd.bottomLeft());
+
+                    auto objs = getQSGModel()->getQSGObjects();
+                    for (auto i : sels)
+                        sel_objs.insert(i, *objs.value(i));
+                    tl = getTransNode()->matrix().map(pts[0]);
+                    br = getTransNode()->matrix().map(pts[2]);
                 }
+                aInput->outs<QJsonObject>(sel_objs.size() > 0 ? rea::Json("bound", rea::JArray(tl.x(), tl.y(), br.x(), br.y()), "shapes", sel_objs) : QJsonObject(), "updateQSGSelects_" + getParentName());
                 //aInput->var<QSet<QString>>("selects", sels)->outs<rea::pointList>(pts);
             }, rea::Json("around", getParentName() + "_updateSelectedMask"));
 
@@ -507,6 +516,27 @@ void document::frontManagement(){
             aInput->outs<QString>(m_sel_front_data->value("value").toString(), "frontdata_updateSelectedDataValueGUI");
         }, "manual");
 
+    //modify com value
+    rea::pipeline::add<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+        auto dt = aInput->data();
+        auto com = m_coms.value(dt.value("sel").toString());
+        com->insert("value", dt.value("val").toString());
+    }, rea::Json("name", "updateFrontComValue"));
+
+    //show shape value
+    rea::pipeline::add<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+        auto dt = aInput->data();
+        auto shps = dt.value("shapes").toObject();
+        for (auto i : shps.keys()){
+            auto shp = shps.value(i).toObject();
+            auto dt = m_coms.value(i)->value("value").toString();
+            if (dt != "")
+                shps.insert(i, rea::Json(shp, "value", m_coms.value(dt)->value("name")));
+        }
+        dt.insert("shapes", shps);
+        aInput->setData(dt)->out();
+    }, rea::Json("name", "updateQSGSelects_frontend"));
+
     //new data
     rea::pipeline::find("_newObject")
         ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
@@ -531,7 +561,9 @@ void document::frontManagement(){
                     m_sel_front_data->addChild(cld);
                 aInput->outs<QString>(m_sel_front_data->value("value").toString(), "frontdata_updateSelectedDataValueGUI");
             }
-            aInput->outs<QJsonObject>(rea::Json("data", m_root_front[m_sel_front]->generateDataDocument()), "frontdata_updateTreeView");
+            auto data = m_root_front[m_sel_front]->generateDataDocument();
+            aInput->outsB<QJsonObject>(rea::Json("data", data), "frontdata_updateTreeView")
+                    ->outs<QJsonArray>(data.value("children").toArray(), "frontdata_updateLabelCandidates");
         }, "new_frontdata", rea::Json("name", "new_frontdata"));
 
     //select event
@@ -541,8 +573,10 @@ void document::frontManagement(){
             m_sel_front = dt;
             aInput->outs<QJsonObject>(rea::Json(m_page_template, "objects", prepareRoutineView(m_root_front[m_sel_front]->generateDocument())), "updateQSGModel_frontend");
         }
-        aInput->outs<QJsonObject>(rea::Json("data", m_root_front[m_sel_front]->generateDataDocument(),
-                                           "select", m_root_front[m_sel_front]->getDataRoot()->getID()), "frontdata_updateTreeView");
+        auto data = m_root_front[m_sel_front]->generateDataDocument();
+        aInput->outsB<QJsonObject>(rea::Json("data", data,
+                                             "select", m_root_front[m_sel_front]->getDataRoot()->getID()), "frontdata_updateTreeView")
+                ->outs<QJsonArray>(data.value("children").toArray(), "frontdata_updateLabelCandidates");
         aInput->outs<QString>("", "frontdata_updateSelectedDataValueGUI");
     }, rea::Json("name", "frontEventSelected"));
 
