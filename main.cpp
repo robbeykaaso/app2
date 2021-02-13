@@ -718,6 +718,27 @@ void document::backManagement(){
             aInput->outs<QString>(m_sel_back_data->value("value").toString(), "backdata_updateSelectedDataValueGUI");
         }, "manual");
 
+    //modify com value
+    rea::pipeline::add<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+        auto dt = aInput->data();
+        auto com = m_coms.value(dt.value("sel").toString());
+        com->insert("value", dt.value("val").toString());
+    }, rea::Json("name", "updateBackComValue"));
+
+    //show shape value
+    rea::pipeline::add<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
+        auto dt = aInput->data();
+        auto shps = dt.value("shapes").toObject();
+        for (auto i : shps.keys()){
+            auto shp = shps.value(i).toObject();
+            auto dt = m_coms.value(i)->value("value").toString();
+            if (dt != "")
+                shps.insert(i, rea::Json(shp, "value", m_coms.value(dt)->value("name")));
+        }
+        dt.insert("shapes", shps);
+        aInput->setData(dt)->out();
+    }, rea::Json("name", "updateQSGSelects_backend"));
+
     //new data
     rea::pipeline::find("_newObject")
         ->nextF<QJsonObject>([this](rea::stream<QJsonObject>* aInput){
@@ -738,7 +759,9 @@ void document::backManagement(){
                     m_sel_back_data->addChild(std::make_shared<dataObject>(dt.value("name").toString(), this));
                 aInput->outs<QString>(m_sel_back_data->value("value").toString(), "backdata_updateSelectedDataValueGUI");
             }
-            aInput->outs<QJsonObject>(rea::Json("data", m_root_back[m_sel_back]->generateDataDocument()), "backdata_updateTreeView");
+            auto data = m_root_back[m_sel_back]->generateDataDocument();
+            aInput->outsB<QJsonObject>(rea::Json("data", data), "backdata_updateTreeView")
+                    ->outs<QJsonArray>(data.value("children").toArray(), "backdata_updateLabelCandidates");
         }, "new_backdata", rea::Json("name", "new_backdata"));
 
     //select event
@@ -748,8 +771,10 @@ void document::backManagement(){
             m_sel_back = dt;
             aInput->outs<QJsonObject>(rea::Json(m_page_template, "objects", prepareRoutineView(m_root_back[m_sel_back]->generateDocument())), "updateQSGModel_backend");
         }
-        aInput->outs<QJsonObject>(rea::Json("data", m_root_back[m_sel_back]->generateDataDocument(),
-                                           "select", m_root_back[m_sel_back]->getDataRoot()->getID()), "backdata_updateTreeView");
+        auto data = m_root_back[m_sel_back]->generateDataDocument();
+        aInput->outsB<QJsonObject>(rea::Json("data", data,
+                                           "select", m_root_back[m_sel_back]->getDataRoot()->getID()), "backdata_updateTreeView")
+                ->outs<QJsonArray>(data.value("children").toArray(), "backdata_updateLabelCandidates");
         aInput->outs<QString>("", "backdata_updateSelectedDataValueGUI");
     }, rea::Json("name", "backEventSelected"));
 
