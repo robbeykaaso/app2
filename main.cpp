@@ -7,6 +7,7 @@ class qsgPluginSelectApp2 : public rea::qsgPluginTransform{
 private:
     bool m_no_affine;
     rea::pipe0* m_hide_handle = nullptr;
+    rea::pipe0* m_check_select = nullptr;
 
     QRectF calcSelectsBound(const QSet<QString>& aSelects, const QMap<QString, std::shared_ptr<rea::qsgObject>>& aShapes){
         QRectF bnd;
@@ -31,6 +32,10 @@ public:
             rea::pipeline::removeAspect(getParentName() + "_updateSelectedMask", rea::pipe0::AspectType::AspectAround, m_hide_handle->actName());
             rea::pipeline::remove(m_hide_handle->actName());
         }
+        if (m_check_select){
+            rea::pipeline::removeAspect(getParentName() + "_qsgObjectCanBeSelected", rea::pipe0::AspectType::AspectAfter, m_check_select->actName());
+            rea::pipeline::remove(m_check_select->actName());
+        }
     }
 protected:
     void wheelEvent(QWheelEvent *event) override{
@@ -51,8 +56,9 @@ protected:
     }
     QString getName(rea::qsgBoard* aParent = nullptr) override{
         rea::qsgBoardPlugin::getName(aParent);
+        auto ret = m_origin_select->getName(aParent);
 
-        if (m_no_affine)
+        if (m_no_affine){
             m_hide_handle = rea::pipeline::add<QSet<QString>>([this](rea::stream<QSet<QString>>* aInput){
                 auto sels = aInput->data();
                 rea::pointList pts;
@@ -75,7 +81,14 @@ protected:
                 //aInput->var<QSet<QString>>("selects", sels)->outs<rea::pointList>(pts);
             }, rea::Json("around", getParentName() + "_updateSelectedMask"));
 
-        return m_origin_select->getName(aParent);
+            m_check_select = rea::pipeline::add<std::pair<rea::qsgObject*, bool*>>([](rea::stream<std::pair<rea::qsgObject*, bool*>>* aInput){
+                auto dt = aInput->data();
+                auto tp =  dt.first->value("tag");
+                *dt.second = tp != "link";
+            }, rea::Json("after", getParentName() + "_qsgObjectCanBeSelected"));
+        }
+
+        return ret;
     }
 private:
     std::shared_ptr<rea::qsgBoardPlugin> m_origin_select;
@@ -563,7 +576,7 @@ void document::frontManagement(){
             }
             auto data = m_root_front[m_sel_front]->generateDataDocument();
             aInput->outsB<QJsonObject>(rea::Json("data", data), "frontdata_updateTreeView")
-                    ->outs<QJsonArray>(data.value("children").toArray(), "frontdata_updateLabelCandidates");
+                    ->outs<QJsonArray>(flatChildren(data), "frontdata_updateLabelCandidates");
         }, "new_frontdata", rea::Json("name", "new_frontdata"));
 
     //select event
@@ -576,7 +589,7 @@ void document::frontManagement(){
         auto data = m_root_front[m_sel_front]->generateDataDocument();
         aInput->outsB<QJsonObject>(rea::Json("data", data,
                                              "select", m_root_front[m_sel_front]->getDataRoot()->getID()), "frontdata_updateTreeView")
-                ->outs<QJsonArray>(data.value("children").toArray(), "frontdata_updateLabelCandidates");
+                ->outs<QJsonArray>(flatChildren(data), "frontdata_updateLabelCandidates");
         aInput->outs<QString>("", "frontdata_updateSelectedDataValueGUI");
     }, rea::Json("name", "frontEventSelected"));
 
@@ -676,7 +689,7 @@ void document::frontManagement(){
                                     com->insert(key, mdy.value("val"));
                                 }
                                 auto st = poles[0].toString();
-                                m_coms.value(st)->insert("next", rea::Json(m_coms.value(st)->value("next").toObject(), m_link_type, id));
+                                m_coms.value(st)->insert("next", rea::Json(m_coms.value(st)->value("next").toObject(), m_link_type, poles[1]));
                                 com->insert("end", poles[1].toString());
                             }
                         }
@@ -761,7 +774,7 @@ void document::backManagement(){
             }
             auto data = m_root_back[m_sel_back]->generateDataDocument();
             aInput->outsB<QJsonObject>(rea::Json("data", data), "backdata_updateTreeView")
-                    ->outs<QJsonArray>(data.value("children").toArray(), "backdata_updateLabelCandidates");
+                    ->outs<QJsonArray>(flatChildren(data), "backdata_updateLabelCandidates");
         }, "new_backdata", rea::Json("name", "new_backdata"));
 
     //select event
@@ -774,7 +787,7 @@ void document::backManagement(){
         auto data = m_root_back[m_sel_back]->generateDataDocument();
         aInput->outsB<QJsonObject>(rea::Json("data", data,
                                            "select", m_root_back[m_sel_back]->getDataRoot()->getID()), "backdata_updateTreeView")
-                ->outs<QJsonArray>(data.value("children").toArray(), "backdata_updateLabelCandidates");
+                ->outs<QJsonArray>(flatChildren(data), "backdata_updateLabelCandidates");
         aInput->outs<QString>("", "backdata_updateSelectedDataValueGUI");
     }, rea::Json("name", "backEventSelected"));
 
@@ -987,6 +1000,16 @@ void document::regCreateShape(const QString& aType){
                                                          m_shape_template.value(aInput->data()).toObject()
                                                          )), tp + "_pasteShapes");
     }, rea::Json("name", "create" + aType + "Com"));
+}
+
+QJsonArray document::flatChildren(const QJsonObject& aNode){
+    auto ret = aNode.value("children").toArray();
+    for (auto i : ret){
+        auto ret0 = flatChildren(i.toObject());
+        for (auto j : ret0)
+            ret.push_front(j);
+    }
+    return ret;
 }
 
 QJsonObject document::prepareEventList(const std::vector<std::shared_ptr<projectObject>>& aList, int aSelect){

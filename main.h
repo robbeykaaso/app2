@@ -82,6 +82,7 @@ private:
     void backManagement();
     void initializeTemplate();
     void regCreateShape(const QString& aType);
+    QJsonArray flatChildren(const QJsonObject& aNode);
     QJsonObject prepareEventList(const std::vector<std::shared_ptr<projectObject>>& aList, int aSelect);
     QJsonObject preparePageView(const QJsonObject& aPageConfig);
     QJsonObject prepareRoutineView(const QJsonObject& aRoutineConfig);
