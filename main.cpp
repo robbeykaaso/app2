@@ -887,21 +887,24 @@ void document::initializeTemplate(){
                                  "image", rea::Json("name", "image0",
                                                     "range", QJsonArray(),
                                                     "comment", "",
-                                                    "source", ""),
+                                                    "source", "",
+                                                    "event", ""),
                                  "text", rea::Json("name", "text0",
                                                    "range", QJsonArray(),
                                                    "comment", "",
                                                    "content", "",
                                                    "size", 16,
                                                    "color", "green",
-                                                   "bold", ""),
+                                                   "bold", "",
+                                                   "event", ""),
                                  "shape", rea::Json("name", "shape0",
                                                     "range", QJsonArray(),
                                                     "comment", "",
                                                     "direction_color", "green",
                                                     "direction_border_type", "line",
                                                     "direction_border_color", "red",
-                                                    "direction_radius", 30));
+                                                    "direction_radius", 30,
+                                                    "event", ""));
     m_shape_template = rea::Json(
                 "start", rea::Json("type", "ellipse",
                                    "com_type", "start",
@@ -1044,7 +1047,14 @@ void document::getShowParam(const QString& aBoardName){
             m_last_sel_board = aBoardName;
         }else if (m_last_sel_board == aBoardName)
             m_sel_obj = nullptr;
-        aInput->outs<QJsonObject>(rea::Json("data", prm), "comloadTreeView");
+        QJsonArray eves;
+        for (auto i : m_root_front)
+            eves.push_back(i->getID());
+        aInput->outs<QJsonObject>(rea::Json("data", prm,
+                                            "style", rea::Json("event",
+                                                               rea::Json("jsst",
+                                                                         rea::Json("val_type", "combo",
+                                                                                   "val_value", eves)))), "comloadTreeView");
     });
 }
 
