@@ -291,9 +291,10 @@ QJsonObject document::prepareRoutineView(const QJsonObject& aRoutineConfig){
             if (j != "type" && cld.contains(j))
                 shp.insert(j, cld.value(j));
         }
-        ret.insert(cld.value("id").toString(), shp);
+        auto id = cld.value("id").toString();
+        ret.insert(id, shp);
 
-        auto nxt = cld.value("next").toObject();
+        auto nxt = m_links_map.value(id);
         for (auto i : nxt.keys()){
             auto dflt = nxt.value(i).toString();
             if (m_coms.contains(dflt)){
@@ -690,6 +691,10 @@ void document::frontManagement(){
                                 }
                                 auto st = poles[0].toString();
                                 m_coms.value(st)->insert("next", rea::Json(m_coms.value(st)->value("next").toObject(), m_link_type, poles[1]));
+
+                                auto lnk_cache = m_links_map.value(st);
+                                m_links_map.insert(st, rea::Json(lnk_cache, m_link_type, id));
+
                                 com->insert("end", poles[1].toString());
                             }
                         }
@@ -850,6 +855,33 @@ void document::backManagement(){
                             auto key = mdy.value("key").toArray()[0].toString();
                             if (key == "points" || key == "center" || key == "radius"){
                                 com->insert(key, mdy.value("val"));
+                            }
+                        }
+                    }
+                }else{
+                    auto poles = mdy.value("pole").toArray();
+                    if (poles.size() > 0){
+                        if (mdy.value("type") == "add"){
+                            auto lnk = std::make_shared<linkObject>("", this, mdy.value("tar").toString());
+                            m_links.push_back(lnk);
+                            auto cfg = mdy.value("val").toObject();
+                            cfg.remove("type");
+                            lnk->initialize(rea::Json(cfg, "start", poles[0]));
+                        }else{
+                            auto id = mdy.value("obj").toString();
+                            auto com = m_coms.value(id);
+                            if (com){
+                                auto key = mdy.value("key").toArray()[0].toString();
+                                if (key == "points"){
+                                    com->insert(key, mdy.value("val"));
+                                }
+                                auto st = poles[0].toString();
+                                m_coms.value(st)->insert("next", rea::Json(m_coms.value(st)->value("next").toObject(), m_link_type, poles[1]));
+
+                                auto lnk_cache = m_links_map.value(st);
+                                m_links_map.insert(st, rea::Json(lnk_cache, m_link_type, id));
+
+                                com->insert("end", poles[1].toString());
                             }
                         }
                     }

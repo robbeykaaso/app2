@@ -103,6 +103,7 @@ private:
     comObject* m_sel_back_data = nullptr;
 
     QHash<QString, comObject*> m_coms;
+    QHash<QString, QJsonObject> m_links_map;
 
     QString m_last_sel_board = "";
     QJsonObject m_page_template;
