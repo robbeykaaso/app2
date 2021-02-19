@@ -36,17 +36,20 @@ Window{
             ListElement{
                 nm: "judge"
             }
-            ListElement{
-                nm: "redirect"
-            }
-            ListElement{
-                nm: "show"
-            }
+            //ListElement{
+            //    nm: "redirect"
+            //}
+            //ListElement{
+            //    nm: "show"
+            //}
             ListElement{
                 nm: "function"
             }
+            //ListElement{
+            //    nm: "cloud_data"
+            //}
             ListElement{
-                nm: "cloud_data"
+                nm: "return"
             }
         }
     }

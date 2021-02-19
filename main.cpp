@@ -249,6 +249,7 @@ OBJTYPE(show)
 OBJTYPE(function)
 OBJTYPE(cloud_data)
 OBJTYPE(focus)
+OBJTYPE(return)
 
 QJsonObject comObject::generateDocument(){
     auto ret = QJsonObject(*this);
@@ -845,6 +846,9 @@ void document::backManagement(){
                         else if (tp == "cloud_data")
                             cur->addChild(std::make_shared<cloud_dataObject>("cloud_data", this, mdy.value("tar").toString()))
                                     ->initialize(m_param_template.value(tp).toObject());
+                        else if (tp == "return")
+                            cur->addChild(std::make_shared<returnObject>("return", this, mdy.value("tar").toString()))
+                                ->initialize(m_param_template.value(tp).toObject());
                     }
                     else if (mdy.value("type") == "del"){
                         cur->removeChild(mdy.value("tar").toString());
@@ -910,6 +914,8 @@ void document::initializeTemplate(){
                                                        "next", rea::Json("default", "")),
                                  "show", rea::Json("data", "",
                                                    "next", rea::Json("default", "")),
+                                 "return", rea::Json("data", "",
+                                                     "next", rea::Json("default", "")),
                                  "function", rea::Json("event", "",
                                                        "next", rea::Json("default", "")),
                                  "cloud_data", rea::Json("data", "",
@@ -945,6 +951,13 @@ void document::initializeTemplate(){
                                    "color", "green",
                                    "face", "50",
                                    "caption", "start"),
+                "return", rea::Json("type", "ellipse",
+                                    "com_type", "return",
+                                    "center", rea::JArray(0, 0),
+                                    "radius", rea::JArray(50, 25),
+                                    "color", "gray",
+                                    "face", "50",
+                                    "caption", "return"),
                 "assign", rea::Json("type", "poly",
                                    "com_type", "assign",
                                    "points", rea::JArray(QJsonArray(),
